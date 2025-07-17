@@ -19,6 +19,7 @@ const LoginForm = () => {
       await signIn(email, password)
       navigate('/dashboard')
     } catch (error) {
+      console.error('LoginForm: Sign in error:', error)
       setError(error.message)
     } finally {
       setLoading(false)

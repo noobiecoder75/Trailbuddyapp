@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
-import Login from './pages/Login'
+import LandingPage from './pages/LandingPage'
 import Dashboard from './pages/Dashboard'
 import Profile from './pages/Profile'
 import StravaCallback from './pages/StravaCallback'
@@ -14,7 +14,7 @@ function App() {
         <Router>
           <div className="min-h-screen bg-gray-50">
             <Routes>
-              <Route path="/login" element={<Login />} />
+              <Route path="/" element={<LandingPage />} />
               <Route path="/dashboard" element={
                 <ProtectedRoute>
                   <Dashboard />
@@ -30,7 +30,6 @@ function App() {
                   <StravaCallback />
                 </ProtectedRoute>
               } />
-              <Route path="/" element={<Login />} />
             </Routes>
           </div>
         </Router>
