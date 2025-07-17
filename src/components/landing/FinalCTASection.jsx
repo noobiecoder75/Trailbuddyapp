@@ -12,13 +12,13 @@ const FinalCTASection = ({ onSignUpClick, onStravaClick }) => {
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-6">
           <button
             onClick={onSignUpClick}
-            className="bg-white text-green-600 hover:bg-gray-100 px-8 py-4 rounded-lg text-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg"
+            className="bg-white text-green-600 hover:bg-gray-100 px-8 py-4 rounded-lg text-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
           >
             Sign Up Free
           </button>
           <button
             onClick={onStravaClick}
-            className="bg-orange-600 hover:bg-orange-700 text-white px-8 py-4 rounded-lg text-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg inline-flex items-center"
+            className="bg-orange-600 hover:bg-orange-700 text-white px-8 py-4 rounded-lg text-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl inline-flex items-center"
           >
             <svg className="h-6 w-6 mr-2" fill="currentColor" viewBox="0 0 24 24">
               <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066l-2.084 4.116zm-7.008-5.599l2.836 5.599h3.065L9.129 6.772L4.228 17.944h3.065l.998-1.969H8.379z"/>

@@ -35,14 +35,13 @@ const LandingPage = () => {
   }
 
   const handleStravaClick = () => {
-    // If user is not logged in, show signup modal first
-    if (!user) {
-      setAuthMode('signup')
-      setAuthModalOpen(true)
-    } else {
-      // If logged in, redirect to Strava auth
-      window.location.href = getStravaAuthUrl()
-    }
+    // Always show signup modal first for Strava connection
+    setAuthMode('signup')
+    setAuthModalOpen(true)
+  }
+
+  const handleModalClose = () => {
+    setAuthModalOpen(false)
   }
 
   return (
@@ -63,7 +62,7 @@ const LandingPage = () => {
       
       <AuthModal 
         isOpen={authModalOpen} 
-        onClose={() => setAuthModalOpen(false)}
+        onClose={handleModalClose}
         initialMode={authMode}
       />
     </div>
