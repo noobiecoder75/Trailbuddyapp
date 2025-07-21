@@ -11,16 +11,21 @@ export const useDemo = () => {
 }
 
 export const DemoProvider = ({ children }) => {
-  const [isDemoMode, setIsDemoMode] = useState(false)
+  // Initialize demo mode immediately based on URL params
+  const [isDemoMode, setIsDemoMode] = useState(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    return urlParams.get('demo') === 'true'
+  })
   const [demoStep, setDemoStep] = useState(0)
 
-  // Check URL params for demo mode
+  // Keep useEffect for any future dynamic changes
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
-    if (urlParams.get('demo') === 'true') {
-      setIsDemoMode(true)
+    const shouldBeDemo = urlParams.get('demo') === 'true'
+    if (shouldBeDemo !== isDemoMode) {
+      setIsDemoMode(shouldBeDemo)
     }
-  }, [])
+  }, [isDemoMode])
 
   // Demo user data
   const demoUser = {
@@ -54,6 +59,132 @@ export const DemoProvider = ({ children }) => {
         elevation_gain: 23456
       }
     }
+  }
+
+  // Mock upcoming activities
+  const upcomingActivities = [
+    {
+      id: 1,
+      title: 'Lynn Canyon Trail Run',
+      type: 'Running',
+      date: '2024-07-20',
+      time: '08:00',
+      participants: 3,
+      maxParticipants: 4,
+      location: 'Lynn Canyon Park',
+      organizer: 'Sarah Chen',
+      status: 'confirmed'
+    },
+    {
+      id: 2,
+      title: 'Grouse Mountain Hike',
+      type: 'Hiking',
+      date: '2024-07-22',
+      time: '09:30',
+      participants: 2,
+      maxParticipants: 6,
+      location: 'Grouse Mountain',
+      organizer: 'Mike Johnson',
+      status: 'open'
+    },
+    {
+      id: 3,
+      title: 'Seawall Cycling',
+      type: 'Cycling',
+      date: '2024-07-25',
+      time: '18:00',
+      participants: 4,
+      maxParticipants: 5,
+      location: 'Stanley Park Seawall',
+      organizer: 'David Park',
+      status: 'almost_full'
+    }
+  ]
+
+  // Mock ride-sharing data
+  const demoRideData = {
+    users: [
+      {
+        id: 'user-1',
+        name: 'Sarah Chen',
+        avatar: 'https://ui-avatars.com/api/?name=Sarah+Chen&background=10b981&color=fff&size=100',
+        rating: 4.9,
+        ridesOffered: 23,
+        location: 'Vancouver',
+        vehicle: {
+          make: 'Honda',
+          model: 'Civic',
+          year: 2021,
+          color: 'Blue',
+          seats: 4
+        },
+        isVerified: true
+      },
+      {
+        id: 'user-2', 
+        name: 'Mike Johnson',
+        avatar: 'https://ui-avatars.com/api/?name=Mike+Johnson&background=3b82f6&color=fff&size=100',
+        rating: 4.7,
+        ridesOffered: 15,
+        location: 'North Vancouver',
+        vehicle: {
+          make: 'Toyota',
+          model: 'RAV4',
+          year: 2020,
+          color: 'Grey',
+          seats: 5
+        },
+        isVerified: true
+      },
+      {
+        id: 'user-3',
+        name: 'Emily Park',
+        avatar: 'https://ui-avatars.com/api/?name=Emily+Park&background=8b5cf6&color=fff&size=100',
+        rating: 5.0,
+        ridesOffered: 8,
+        location: 'Burnaby',
+        vehicle: {
+          make: 'Subaru',
+          model: 'Outback',
+          year: 2022,
+          color: 'Green',
+          seats: 5
+        },
+        isVerified: true
+      }
+    ],
+    rideOffers: [
+      {
+        id: 'offer-1',
+        activityId: 1,
+        driverId: 'user-1',
+        availableSeats: 3,
+        departureTime: '07:30',
+        pickupLocations: ['Lonsdale Quay', 'Deep Cove'],
+        costPerPerson: 8,
+        notes: 'Happy to pick up coffee on the way!'
+      },
+      {
+        id: 'offer-2', 
+        activityId: 2,
+        driverId: 'user-2',
+        availableSeats: 4,
+        departureTime: '08:45',
+        pickupLocations: ['Capilano Mall', 'Marine Dr'],
+        costPerPerson: 12,
+        notes: 'Have gear space in trunk'
+      }
+    ],
+    rideRequests: [
+      {
+        id: 'request-1',
+        activityId: 3,
+        requesterId: 'demo-user-123',
+        preferredPickup: 'Vancouver Downtown',
+        willingToShare: 15,
+        notes: 'Flexible on pickup location within Vancouver'
+      }
+    ]
   }
 
   // Mock activities data
@@ -165,7 +296,9 @@ export const DemoProvider = ({ children }) => {
     setDemoStep,
     demoUser,
     demoAthlete,
-    demoActivities
+    demoActivities,
+    demoRideData,
+    upcomingActivities
   }
 
   return (

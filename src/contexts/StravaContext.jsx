@@ -121,14 +121,23 @@ export const StravaProvider = ({ children }) => {
     setError(null)
 
     try {
-      // Demo mode - simulate connection
-      if (isDemoMode) {
+      // Check for demo mode FIRST - both from state and URL parameter
+      const urlParams = new URLSearchParams(window.location.search)
+      const isDemoFromUrl = urlParams.get('demo') === 'true'
+      
+      // Demo mode - simulate connection (check both state and URL)
+      if (isDemoMode || isDemoFromUrl) {
         await new Promise(resolve => setTimeout(resolve, 1500)) // Simulate API delay
         setIsDemoConnected(true)
         setAthlete(demoAthlete)
         setActivities(demoActivities)
         setLoading(false)
         return true
+      }
+
+      // Real OAuth flow - validate code parameter only for non-demo mode
+      if (!code) {
+        throw new Error('No authorization code provided')
       }
 
       const tokens = await exchangeCodeForTokens(code)
@@ -185,7 +194,6 @@ export const StravaProvider = ({ children }) => {
     const now = Date.now()
     if (!forceRefresh && lastFetchTime && activities.length > 0 && 
         (now - lastFetchTime) < ACTIVITIES_CACHE_DURATION) {
-      console.log('Using cached activities')
       return activities
     }
 
@@ -220,6 +228,13 @@ export const StravaProvider = ({ children }) => {
     }
   }
 
+  // Fallback demo mode detection if isDemoMode is undefined
+  const urlParams = new URLSearchParams(window.location.search)
+  const isDemoFromUrl = urlParams.get('demo') === 'true'
+  const actualDemoMode = isDemoMode ?? isDemoFromUrl
+  
+  const isConnected = actualDemoMode ? isDemoConnected : (!!stravaTokens && !!athlete)
+
   const value = {
     stravaTokens,
     athlete,
@@ -229,7 +244,7 @@ export const StravaProvider = ({ children }) => {
     connectStrava,
     disconnectStrava,
     fetchActivities,
-    isConnected: isDemoMode ? isDemoConnected : (!!stravaTokens && !!athlete)
+    isConnected
   }
 
   return (

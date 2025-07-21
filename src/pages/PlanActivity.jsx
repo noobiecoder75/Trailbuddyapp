@@ -3,8 +3,10 @@ import { Link } from 'react-router-dom'
 import Button from '../components/ui/Button'
 import Card from '../components/ui/Card'
 import Toast from '../components/ui/Toast'
+import { useDemo } from '../contexts/DemoContext'
 
 const PlanActivity = () => {
+  const { isDemoMode, demoRideData } = useDemo()
   const [formData, setFormData] = useState({
     activityType: 'running',
     title: '',
@@ -22,6 +24,7 @@ const PlanActivity = () => {
   const [toastMessage, setToastMessage] = useState('')
   const [isCreating, setIsCreating] = useState(false)
   const [joiningActivityId, setJoiningActivityId] = useState(null)
+  const [showRideForm, setShowRideForm] = useState({ offer: false, request: false })
 
   // Mock upcoming activities
   const upcomingActivities = [
@@ -135,6 +138,24 @@ const PlanActivity = () => {
       setShowToast(true)
       setJoiningActivityId(null)
     }, 1000)
+  }
+
+  const handleOfferRide = () => {
+    setShowRideForm({ offer: false, request: false })
+    setToastMessage('Ride offer posted! Participants will be able to see your transportation offer.')
+    setShowToast(true)
+  }
+
+  const handleRequestRide = () => {
+    setShowRideForm({ offer: false, request: false })
+    setToastMessage('Ride request posted! Drivers will be notified of your transportation need.')
+    setShowToast(true)
+  }
+
+  const handleJoinRide = (rideOffer) => {
+    const driver = demoRideData.users.find(u => u.id === rideOffer.driverId)
+    setToastMessage(`Ride request sent to ${driver.name}! You'll receive pickup details soon.`)
+    setShowToast(true)
   }
 
   return (
@@ -325,6 +346,107 @@ const PlanActivity = () => {
                   />
                 </div>
 
+                {/* Transportation Section - Demo Feature */}
+                {isDemoMode && (
+                  <div className="border-t pt-6 mt-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h4 className="text-lg font-semibold text-mountain-900">Transportation Coordination</h4>
+                        <p className="text-sm text-mountain-600">Help participants get to the activity</p>
+                      </div>
+                      <span className="bg-secondary-100 text-secondary-800 text-xs font-medium px-2 py-1 rounded-full">
+                        Demo Feature
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <Button
+                        variant="outline"
+                        className="p-4 h-auto flex flex-col items-center space-y-2 border-2 border-dashed border-mountain-300 hover:border-primary-500 hover:bg-primary-50"
+                        onClick={() => setShowRideForm({ offer: true, request: false })}
+                      >
+                        <svg className="w-8 h-8 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 17l4-4 4 4M8 7l4 4 4-4" />
+                        </svg>
+                        <div className="text-center">
+                          <div className="font-semibold text-mountain-900">Offer a Ride</div>
+                          <div className="text-sm text-mountain-600">Share your vehicle with participants</div>
+                        </div>
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        className="p-4 h-auto flex flex-col items-center space-y-2 border-2 border-dashed border-mountain-300 hover:border-secondary-500 hover:bg-secondary-50"
+                        onClick={() => setShowRideForm({ offer: false, request: true })}
+                      >
+                        <svg className="w-8 h-8 text-secondary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11l5-5m0 0l5 5m-5-5v12" />
+                        </svg>
+                        <div className="text-center">
+                          <div className="font-semibold text-mountain-900">Request a Ride</div>
+                          <div className="text-sm text-mountain-600">Find transportation to the activity</div>
+                        </div>
+                      </Button>
+                    </div>
+
+                    {/* Ride Offer Form */}
+                    {showRideForm.offer && (
+                      <div className="bg-primary-50 p-4 rounded-xl border border-primary-200 mb-4">
+                        <h5 className="font-semibold text-mountain-900 mb-3">Offer Transportation</h5>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-mountain-700 mb-1">Available Seats</label>
+                            <select className="w-full p-2 border border-mountain-300 rounded-lg text-sm">
+                              <option value="1">1 seat</option>
+                              <option value="2">2 seats</option>
+                              <option value="3">3 seats</option>
+                              <option value="4">4 seats</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-mountain-700 mb-1">Cost Share (per person)</label>
+                            <input type="number" placeholder="8" className="w-full p-2 border border-mountain-300 rounded-lg text-sm" />
+                          </div>
+                          <div className="md:col-span-2">
+                            <label className="block text-sm font-medium text-mountain-700 mb-1">Pickup Locations</label>
+                            <input type="text" placeholder="e.g., Lonsdale Quay, Deep Cove" className="w-full p-2 border border-mountain-300 rounded-lg text-sm" />
+                          </div>
+                        </div>
+                        <div className="flex space-x-2 mt-3">
+                          <Button size="sm" onClick={handleOfferRide}>Post Ride Offer</Button>
+                          <Button size="sm" variant="outline" onClick={() => setShowRideForm({ offer: false, request: false })}>Cancel</Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Ride Request Form */}
+                    {showRideForm.request && (
+                      <div className="bg-secondary-50 p-4 rounded-xl border border-secondary-200 mb-4">
+                        <h5 className="font-semibold text-mountain-900 mb-3">Request Transportation</h5>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-mountain-700 mb-1">Preferred Pickup</label>
+                            <input type="text" placeholder="e.g., Vancouver Downtown" className="w-full p-2 border border-mountain-300 rounded-lg text-sm" />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-mountain-700 mb-1">Willing to Share ($)</label>
+                            <input type="number" placeholder="15" className="w-full p-2 border border-mountain-300 rounded-lg text-sm" />
+                          </div>
+                          <div className="md:col-span-2">
+                            <label className="block text-sm font-medium text-mountain-700 mb-1">Additional Notes</label>
+                            <input type="text" placeholder="Flexible on pickup location within Vancouver" className="w-full p-2 border border-mountain-300 rounded-lg text-sm" />
+                          </div>
+                        </div>
+                        <div className="flex space-x-2 mt-3">
+                          <Button size="sm" onClick={handleRequestRide}>Post Ride Request</Button>
+                          <Button size="sm" variant="outline" onClick={() => setShowRideForm({ offer: false, request: false })}>Cancel</Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div className="flex space-x-4 pt-4">
                   <Button 
                     className="flex-1"
@@ -432,6 +554,56 @@ const PlanActivity = () => {
                 </div>
               </Card.Body>
             </Card>
+
+            {/* Transportation Tips - Demo Feature */}
+            {isDemoMode && (
+              <Card>
+                <Card.Header>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-mountain-900">Transportation Tips</h3>
+                    <span className="bg-secondary-100 text-secondary-800 text-xs font-medium px-2 py-1 rounded-full">Demo</span>
+                  </div>
+                </Card.Header>
+                <Card.Body className="space-y-4">
+                  <div className="flex items-start space-x-3">
+                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-mountain-900 text-sm">Share Costs</h4>
+                      <p className="text-mountain-600 text-xs">Split gas money fairly - typical $8-15 per person for local activities</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start space-x-3">
+                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-mountain-900 text-sm">Pick Central Locations</h4>
+                      <p className="text-mountain-600 text-xs">Choose pickup spots accessible to multiple participants</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start space-x-3">
+                    <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-mountain-900 text-sm">Confirm Early</h4>
+                      <p className="text-mountain-600 text-xs">Finalize ride arrangements 24 hours before the activity</p>
+                    </div>
+                  </div>
+                </Card.Body>
+              </Card>
+            )}
           </div>
         </div>
 
@@ -492,6 +664,54 @@ const PlanActivity = () => {
                               {activity.participants}/{activity.maxParticipants} joined
                             </div>
                           </div>
+
+                          {/* Transportation Info - Demo Feature */}
+                          {isDemoMode && (
+                            <div className="mt-3">
+                              {(() => {
+                                const activityRides = demoRideData.rideOffers.filter(offer => offer.activityId === activity.id)
+                                const activityRequests = demoRideData.rideRequests.filter(req => req.activityId === activity.id)
+                                
+                                if (activityRides.length > 0 || activityRequests.length > 0) {
+                                  return (
+                                    <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                                      <h4 className="text-sm font-semibold text-green-800 mb-2 flex items-center">
+                                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+                                        </svg>
+                                        Transportation Available
+                                      </h4>
+                                      <div className="space-y-2">
+                                        {activityRides.map(ride => {
+                                          const driver = demoRideData.users.find(u => u.id === ride.driverId)
+                                          return (
+                                            <div key={ride.id} className="flex items-center justify-between bg-white p-2 rounded border">
+                                              <div className="flex items-center space-x-2">
+                                                <img src={driver.avatar} alt={driver.name} className="w-6 h-6 rounded-full" />
+                                                <div className="text-sm">
+                                                  <span className="font-medium">{driver.name}</span> offers {ride.availableSeats} seats
+                                                  <span className="text-mountain-600 ml-1">(${ride.costPerPerson}/person)</span>
+                                                </div>
+                                              </div>
+                                              <Button size="xs" onClick={() => handleJoinRide(ride)}>
+                                                Join Ride
+                                              </Button>
+                                            </div>
+                                          )
+                                        })}
+                                        {activityRequests.length > 0 && (
+                                          <div className="text-xs text-green-700">
+                                            {activityRequests.length} ride request{activityRequests.length > 1 ? 's' : ''} pending
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )
+                                }
+                                return null
+                              })()}
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div className="flex space-x-2">

@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { useDemo } from './DemoContext'
 
 const AuthContext = createContext({})
 
@@ -14,18 +15,34 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const { isDemoMode, demoUser } = useDemo()
 
   useEffect(() => {
-    // Get initial session
-    const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      setUser(session?.user ?? null)
+    // Check for demo mode first - bypass Supabase entirely
+    const urlParams = new URLSearchParams(window.location.search)
+    const isDemoFromUrl = urlParams.get('demo') === 'true'
+    
+    if (isDemoMode || isDemoFromUrl) {
+      setUser(demoUser)
       setLoading(false)
+      return // No cleanup needed for demo mode
+    }
+
+    // Only attempt Supabase for real users
+    const getSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        setUser(session?.user ?? null)
+        setLoading(false)
+      } catch (error) {
+        console.error('Supabase auth error:', error)
+        setLoading(false)
+      }
     }
 
     getSession()
 
-    // Listen for auth changes
+    // Listen for auth changes (only for non-demo mode)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setUser(session?.user ?? null)
@@ -34,9 +51,15 @@ export const AuthProvider = ({ children }) => {
     )
 
     return () => subscription.unsubscribe()
-  }, [])
+  }, [isDemoMode, demoUser])
 
   const signUp = async (email, password) => {
+    // Skip Supabase in demo mode
+    if (isDemoMode) {
+      console.log('Demo mode: Skipping signup')
+      return { user: demoUser }
+    }
+
     console.log('AuthContext: Starting signup process for:', email)
     
     try {
@@ -67,6 +90,12 @@ export const AuthProvider = ({ children }) => {
   }
 
   const signIn = async (email, password) => {
+    // Skip Supabase in demo mode
+    if (isDemoMode) {
+      console.log('Demo mode: Skipping sign in')
+      return { user: demoUser }
+    }
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -80,6 +109,13 @@ export const AuthProvider = ({ children }) => {
   }
 
   const signOut = async () => {
+    // Skip Supabase in demo mode
+    if (isDemoMode) {
+      console.log('Demo mode: Skipping sign out')
+      setUser(null)
+      return
+    }
+
     const { error } = await supabase.auth.signOut()
     if (error) throw error
   }
