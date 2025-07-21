@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { useAuth } from './AuthContext'
+import { useDemo } from './DemoContext'
 import { supabase } from '../lib/supabase'
 import { exchangeCodeForTokens, refreshAccessToken, getAthleteProfile, getAthleteActivities } from '../lib/stravaApi'
 
@@ -15,22 +16,35 @@ export const useStrava = () => {
 
 export const StravaProvider = ({ children }) => {
   const { user } = useAuth()
+  const { isDemoMode, demoAthlete, demoActivities } = useDemo()
   const [stravaTokens, setStravaTokens] = useState(null)
   const [athlete, setAthlete] = useState(null)
   const [activities, setActivities] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [lastFetchTime, setLastFetchTime] = useState(null)
+  const [isDemoConnected, setIsDemoConnected] = useState(false)
+
+  // Cache duration: 5 minutes for activities, 1 hour for athlete profile
+  const ACTIVITIES_CACHE_DURATION = 5 * 60 * 1000
+  const ATHLETE_CACHE_DURATION = 60 * 60 * 1000
 
   // Load stored Strava tokens when user changes
   useEffect(() => {
-    if (user) {
+    if (isDemoMode) {
+      // In demo mode, use mock data
+      if (isDemoConnected) {
+        setAthlete(demoAthlete)
+        setActivities(demoActivities)
+      }
+    } else if (user) {
       loadStravaTokens()
     } else {
       setStravaTokens(null)
       setAthlete(null)
       setActivities([])
     }
-  }, [user])
+  }, [user, isDemoMode, isDemoConnected, demoAthlete, demoActivities])
 
   const loadStravaTokens = async () => {
     try {
@@ -64,12 +78,14 @@ export const StravaProvider = ({ children }) => {
   const handleTokenRefresh = async (refreshToken) => {
     try {
       const tokens = await refreshAccessToken(refreshToken)
-      await saveStravaTokens(tokens)
+      const savedTokens = await saveStravaTokens(tokens)
       const profile = await getAthleteProfile(tokens.access_token)
       setAthlete(profile)
+      return savedTokens
     } catch (error) {
       console.error('Error refreshing token:', error)
       setError('Failed to refresh Strava token')
+      throw error
     }
   }
 
@@ -105,6 +121,16 @@ export const StravaProvider = ({ children }) => {
     setError(null)
 
     try {
+      // Demo mode - simulate connection
+      if (isDemoMode) {
+        await new Promise(resolve => setTimeout(resolve, 1500)) // Simulate API delay
+        setIsDemoConnected(true)
+        setAthlete(demoAthlete)
+        setActivities(demoActivities)
+        setLoading(false)
+        return true
+      }
+
       const tokens = await exchangeCodeForTokens(code)
       await saveStravaTokens(tokens)
       
@@ -123,6 +149,14 @@ export const StravaProvider = ({ children }) => {
 
   const disconnectStrava = async () => {
     try {
+      // Demo mode - just reset connection state
+      if (isDemoMode) {
+        setIsDemoConnected(false)
+        setAthlete(null)
+        setActivities([])
+        return
+      }
+
       const { error } = await supabase
         .from('user_strava_tokens')
         .delete()
@@ -139,8 +173,21 @@ export const StravaProvider = ({ children }) => {
     }
   }
 
-  const fetchActivities = async (page = 1, perPage = 30) => {
+  const fetchActivities = async (page = 1, perPage = 30, forceRefresh = false) => {
+    // Demo mode - return demo activities
+    if (isDemoMode && isDemoConnected) {
+      return demoActivities
+    }
+
     if (!stravaTokens) return []
+
+    // Check cache first
+    const now = Date.now()
+    if (!forceRefresh && lastFetchTime && activities.length > 0 && 
+        (now - lastFetchTime) < ACTIVITIES_CACHE_DURATION) {
+      console.log('Using cached activities')
+      return activities
+    }
 
     setLoading(true)
     setError(null)
@@ -148,15 +195,23 @@ export const StravaProvider = ({ children }) => {
     try {
       const activitiesData = await getAthleteActivities(stravaTokens.access_token, page, perPage)
       setActivities(activitiesData)
+      setLastFetchTime(now)
       return activitiesData
     } catch (error) {
       if (error.message === 'Token expired') {
-        await handleTokenRefresh(stravaTokens.refresh_token)
-        // Retry after refresh
-        const activitiesData = await getAthleteActivities(stravaTokens.access_token, page, perPage)
-        setActivities(activitiesData)
-        return activitiesData
+        try {
+          const refreshedTokens = await handleTokenRefresh(stravaTokens.refresh_token)
+          const activitiesData = await getAthleteActivities(refreshedTokens.access_token, page, perPage)
+          setActivities(activitiesData)
+          setLastFetchTime(now)
+          return activitiesData
+        } catch (refreshError) {
+          console.error('Token refresh failed:', refreshError)
+          setError('Failed to refresh Strava token')
+          return []
+        }
       } else {
+        console.error('Error fetching activities:', error)
         setError(error.message)
         return []
       }
@@ -174,7 +229,7 @@ export const StravaProvider = ({ children }) => {
     connectStrava,
     disconnectStrava,
     fetchActivities,
-    isConnected: !!stravaTokens && !!athlete
+    isConnected: isDemoMode ? isDemoConnected : (!!stravaTokens && !!athlete)
   }
 
   return (

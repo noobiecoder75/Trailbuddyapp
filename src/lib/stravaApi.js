@@ -9,6 +9,72 @@ const stravaApi = axios.create({
   timeout: 10000
 })
 
+// Rate limiting storage
+let rateLimitState = {
+  requests: 0,
+  windowStart: Date.now(),
+  isRateLimited: false,
+  retryAfter: null
+}
+
+// Rate limit: 100 requests per 15 minutes (900 seconds)
+const RATE_LIMIT_REQUESTS = 90 // Leave some buffer
+const RATE_LIMIT_WINDOW = 15 * 60 * 1000 // 15 minutes in milliseconds
+
+// Check if we're within rate limits
+const checkRateLimit = () => {
+  const now = Date.now()
+  
+  // Reset window if 15 minutes have passed
+  if (now - rateLimitState.windowStart > RATE_LIMIT_WINDOW) {
+    rateLimitState.requests = 0
+    rateLimitState.windowStart = now
+    rateLimitState.isRateLimited = false
+  }
+  
+  // Check if we've exceeded the limit
+  if (rateLimitState.requests >= RATE_LIMIT_REQUESTS) {
+    rateLimitState.isRateLimited = true
+    rateLimitState.retryAfter = rateLimitState.windowStart + RATE_LIMIT_WINDOW
+    return false
+  }
+  
+  return true
+}
+
+// Exponential backoff retry function
+const retryWithBackoff = async (fn, maxRetries = 3, baseDelay = 1000) => {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fn()
+    } catch (error) {
+      if (error.response?.status === 429) {
+        const retryAfter = error.response.headers['retry-after']
+        const delay = retryAfter ? parseInt(retryAfter) * 1000 : baseDelay * Math.pow(2, attempt)
+        
+        console.log(`Rate limited, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries})`)
+        
+        if (attempt < maxRetries - 1) {
+          await new Promise(resolve => setTimeout(resolve, delay))
+          continue
+        }
+      }
+      throw error
+    }
+  }
+}
+
+// Wrapper for API calls with rate limiting
+const makeApiCall = async (apiCall) => {
+  if (!checkRateLimit()) {
+    const waitTime = rateLimitState.retryAfter - Date.now()
+    throw new Error(`Rate limited. Try again in ${Math.ceil(waitTime / 1000)} seconds`)
+  }
+  
+  rateLimitState.requests++
+  return await retryWithBackoff(apiCall)
+}
+
 // Generate Strava OAuth URL
 export const getStravaAuthUrl = () => {
   const params = new URLSearchParams({
@@ -57,13 +123,16 @@ export const refreshAccessToken = async (refreshToken) => {
 // Get athlete profile
 export const getAthleteProfile = async (accessToken) => {
   try {
-    const response = await stravaApi.get('/athlete', {
+    const response = await makeApiCall(() => stravaApi.get('/athlete', {
       headers: {
         'Authorization': `Bearer ${accessToken}`
       }
-    })
+    }))
     return response.data
   } catch (error) {
+    if (error.response?.status === 401) {
+      throw new Error('Token expired')
+    }
     throw new Error('Failed to fetch athlete profile: ' + error.message)
   }
 }
@@ -71,7 +140,7 @@ export const getAthleteProfile = async (accessToken) => {
 // Get athlete activities
 export const getAthleteActivities = async (accessToken, page = 1, perPage = 30) => {
   try {
-    const response = await stravaApi.get('/athlete/activities', {
+    const response = await makeApiCall(() => stravaApi.get('/athlete/activities', {
       headers: {
         'Authorization': `Bearer ${accessToken}`
       },
@@ -79,7 +148,7 @@ export const getAthleteActivities = async (accessToken, page = 1, perPage = 30) 
         page,
         per_page: perPage
       }
-    })
+    }))
     return response.data
   } catch (error) {
     if (error.response?.status === 401) {
@@ -92,13 +161,23 @@ export const getAthleteActivities = async (accessToken, page = 1, perPage = 30) 
 // Get specific activity details
 export const getActivityDetails = async (accessToken, activityId) => {
   try {
-    const response = await stravaApi.get(`/activities/${activityId}`, {
+    const response = await makeApiCall(() => stravaApi.get(`/activities/${activityId}`, {
       headers: {
         'Authorization': `Bearer ${accessToken}`
       }
-    })
+    }))
     return response.data
   } catch (error) {
+    if (error.response?.status === 401) {
+      throw new Error('Token expired')
+    }
     throw new Error('Failed to fetch activity details: ' + error.message)
   }
 }
+
+// Export rate limit state for debugging
+export const getRateLimitState = () => ({
+  ...rateLimitState,
+  remainingRequests: Math.max(0, RATE_LIMIT_REQUESTS - rateLimitState.requests),
+  windowTimeLeft: Math.max(0, (rateLimitState.windowStart + RATE_LIMIT_WINDOW) - Date.now())
+})

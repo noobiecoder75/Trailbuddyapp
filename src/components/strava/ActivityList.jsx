@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useStrava } from '../../contexts/StravaContext'
 import ActivityCard from './ActivityCard'
 import ActivityFilters from './ActivityFilters'
+import RateLimitStatus from './RateLimitStatus'
 
 const ActivityList = () => {
   const { activities, loading, error, fetchActivities, isConnected } = useStrava()
@@ -122,7 +123,10 @@ const ActivityList = () => {
 
   return (
     <div className="space-y-6">
-      <ActivityFilters filters={filters} onFiltersChange={setFilters} />
+      <div className="flex justify-between items-center">
+        <ActivityFilters filters={filters} onFiltersChange={setFilters} />
+        <RateLimitStatus />
+      </div>
       
       {filteredActivities.length === 0 ? (
         <div className="text-center py-8">

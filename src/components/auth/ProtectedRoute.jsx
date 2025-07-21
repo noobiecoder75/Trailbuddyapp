@@ -1,8 +1,10 @@
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
+import { useDemo } from '../../contexts/DemoContext'
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth()
+  const { isDemoMode } = useDemo()
 
   if (loading) {
     return (
@@ -12,7 +14,7 @@ const ProtectedRoute = ({ children }) => {
     )
   }
 
-  if (!user) {
+  if (!user && !isDemoMode) {
     return <Navigate to="/login" replace />
   }
 

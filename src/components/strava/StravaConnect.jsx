@@ -1,11 +1,21 @@
+import { useState } from 'react'
 import { useStrava } from '../../contexts/StravaContext'
+import { useDemo } from '../../contexts/DemoContext'
 import { getStravaAuthUrl } from '../../lib/stravaApi'
 
 const StravaConnect = () => {
-  const { isConnected, athlete, loading, error, disconnectStrava } = useStrava()
+  const { isConnected, athlete, loading, error, disconnectStrava, connectStrava } = useStrava()
+  const { isDemoMode } = useDemo()
+  const [isConnecting, setIsConnecting] = useState(false)
 
-  const handleConnect = () => {
-    window.location.href = getStravaAuthUrl()
+  const handleConnect = async () => {
+    if (isDemoMode) {
+      setIsConnecting(true)
+      await connectStrava()
+      setIsConnecting(false)
+    } else {
+      window.location.href = getStravaAuthUrl()
+    }
   }
 
   const handleDisconnect = async () => {
@@ -14,7 +24,7 @@ const StravaConnect = () => {
     }
   }
 
-  if (loading) {
+  if (loading || isConnecting) {
     return (
       <div className="flex items-center justify-center p-4">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
