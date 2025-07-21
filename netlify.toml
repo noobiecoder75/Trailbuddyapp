@@ -4,12 +4,10 @@
   
   # Directory with the static build output
   publish = "dist"
-  
-  # Node.js version
-  environment = { NODE_VERSION = "18" }
 
 [build.environment]
-  # Set the CI variable to false to treat warnings as warnings, not errors
+  # Node.js version and CI settings
+  NODE_VERSION = "18"
   CI = "false"
 
 [[redirects]]
