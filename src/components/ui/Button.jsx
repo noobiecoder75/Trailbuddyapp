@@ -23,11 +23,11 @@ const Button = forwardRef(({
   }
   
   const sizes = {
-    xs: 'px-2 py-1 text-xs',
-    sm: 'px-4 py-2 text-sm',
-    md: 'px-6 py-3 text-base',
-    lg: 'px-8 py-4 text-lg',
-    xl: 'px-10 py-5 text-xl',
+    xs: 'px-3 py-2 text-xs min-h-[36px]',
+    sm: 'px-4 py-2 text-sm min-h-[40px]',
+    md: 'px-6 py-3 text-base min-h-[44px]',
+    lg: 'px-8 py-4 text-lg min-h-[48px]',
+    xl: 'px-10 py-5 text-xl min-h-[52px]',
   }
   
   const variantClasses = variants[variant] || variants.primary
