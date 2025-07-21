@@ -71,7 +71,11 @@ export const AuthProvider = ({ children }) => {
       email,
       password,
     })
-    if (error) throw error
+    if (error) {
+      console.error('AuthContext: Sign in error:', error)
+      throw error
+    }
+    console.log('AuthContext: Sign in successful')
     return data
   }
 
