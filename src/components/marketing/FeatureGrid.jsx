@@ -10,7 +10,7 @@ const FeatureGrid = () => {
       ),
       title: 'Smart Partner Matching',
       description: 'Find partners based on fitness level, activity preferences, and location. Our algorithm ensures compatible matches.',
-      color: 'primary',
+      gradient: 'from-primary-500 to-primary-700',
     },
     {
       icon: (
@@ -20,7 +20,7 @@ const FeatureGrid = () => {
       ),
       title: 'Schedule Coordination',
       description: 'Coordinate rides, meetups, and activities with integrated calendar and automatic reminders.',
-      color: 'secondary',
+      gradient: 'from-secondary-500 to-secondary-700',
     },
     {
       icon: (
@@ -30,46 +30,34 @@ const FeatureGrid = () => {
       ),
       title: 'Verified Partners',
       description: 'Connect with trusted, verified outdoor enthusiasts. Safety and reliability you can count on.',
-      color: 'success',
+      gradient: 'from-green-500 to-green-700',
     },
   ]
 
-  const colorClasses = {
-    primary: 'from-primary-500 to-primary-600',
-    secondary: 'from-secondary-500 to-secondary-600',
-    success: 'from-green-500 to-green-600',
-  }
-
   return (
-    <section className="py-24 bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="py-24 bg-mountain-50">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-display font-bold text-gray-900 mb-6">
+          <h2 className="text-4xl md:text-5xl font-display font-bold text-mountain-900 mb-6">
             Why Choose TrailBuddy?
           </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          <p className="text-xl text-mountain-600 max-w-3xl mx-auto">
             Connect with like-minded outdoor enthusiasts through our smart matching system and reliable coordination tools.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {features.map((feature, index) => (
-            <Card 
-              key={index} 
-              className="group hover:shadow-xl transition-all duration-300 h-full"
-              hover={true}
-            >
-              <div className="text-center">
-                <div className={`w-20 h-20 bg-gradient-to-br ${colorClasses[feature.color]} rounded-2xl flex items-center justify-center text-white mx-auto mb-6 shadow-lg transform group-hover:scale-110 transition-transform duration-300`}>
-                  {feature.icon}
-                </div>
-                <h3 className="text-2xl font-display font-bold text-gray-900 mb-4">
-                  {feature.title}
-                </h3>
-                <p className="text-gray-600 leading-relaxed">
-                  {feature.description}
-                </p>
+            <Card key={index} className="text-center h-full">
+              <div className={`w-16 h-16 bg-gradient-to-br ${feature.gradient} rounded-xl flex items-center justify-center text-white mx-auto mb-6 shadow-lg`}>
+                {feature.icon}
               </div>
+              <h3 className="text-xl font-display font-bold text-mountain-900 mb-4">
+                {feature.title}
+              </h3>
+              <p className="text-mountain-600 leading-relaxed">
+                {feature.description}
+              </p>
             </Card>
           ))}
         </div>
