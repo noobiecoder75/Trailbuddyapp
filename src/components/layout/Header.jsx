@@ -24,6 +24,7 @@ const Header = () => {
     { name: 'Home', href: '/' },
     { name: 'Features', href: '/features' },
     { name: 'About', href: '/about' },
+    { name: 'Terms', href: '/terms' },
   ]
 
   const authenticatedNavigation = [

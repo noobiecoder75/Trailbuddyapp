@@ -6,6 +6,7 @@ import Profile from './pages/Profile';
 import StravaCallback from './pages/StravaCallback';
 import PlanActivity from './pages/PlanActivity';
 import FindPartners from './pages/FindPartners';
+import Terms from './pages/Terms';
 import { AuthProvider } from './contexts/AuthContext';
 import { StravaProvider } from './contexts/StravaContext';
 import { DemoProvider } from './contexts/DemoContext';
@@ -68,6 +69,7 @@ function App() {
               {/* Placeholder routes for marketing pages */}
               <Route path="/features" element={<LandingPage />} />
               <Route path="/about" element={<LandingPage />} />
+              <Route path="/terms" element={<Terms />} />
             </Routes>
           </main>
           <Footer />

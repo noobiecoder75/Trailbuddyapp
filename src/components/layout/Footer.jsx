@@ -61,9 +61,8 @@ const Footer = () => {
             </h3>
             <ul className="space-y-3">
               <li><Link to="/about" className="text-mountain-300 hover:text-primary-400 transition-colors">About</Link></li>
-              <li><a href="#" className="text-mountain-300 hover:text-primary-400 transition-colors">Privacy</a></li>
-              <li><a href="#" className="text-mountain-300 hover:text-primary-400 transition-colors">Terms</a></li>
-              <li><a href="#" className="text-mountain-300 hover:text-primary-400 transition-colors">Support</a></li>
+              <li><Link to="/terms" className="text-mountain-300 hover:text-primary-400 transition-colors">Privacy & Terms</Link></li>
+              <li><a href="mailto:support@trailbuddy.ca" className="text-mountain-300 hover:text-primary-400 transition-colors">Support</a></li>
             </ul>
           </div>
         </div>
