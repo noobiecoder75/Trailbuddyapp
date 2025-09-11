@@ -4,11 +4,12 @@ import LandingPage from './pages/LandingPage';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
 import StravaCallback from './pages/StravaCallback';
+import HealthCallback from './pages/HealthCallback';
 import PlanActivity from './pages/PlanActivity';
 import FindPartners from './pages/FindPartners';
 import Terms from './pages/Terms';
 import { AuthProvider } from './contexts/AuthContext';
-import { StravaProvider } from './contexts/StravaContext';
+import { HealthProvider } from './contexts/HealthContext';
 import { DemoProvider } from './contexts/DemoContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import Header from './components/layout/Header';
@@ -18,7 +19,7 @@ function App() {
   return (
     <AuthProvider>
       <DemoProvider>
-        <StravaProvider>
+        <HealthProvider>
           <Router>
           <Header />
           <main>
@@ -49,6 +50,30 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="/auth/health/callback"
+                element={
+                  <ProtectedRoute>
+                    <HealthCallback />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/health-connect-callback"
+                element={
+                  <ProtectedRoute>
+                    <HealthCallback />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/apple-health-callback"
+                element={
+                  <ProtectedRoute>
+                    <HealthCallback />
+                  </ProtectedRoute>
+                }
+              />
               {/* Feature pages requiring authentication */}
               <Route
                 path="/find-partners"
@@ -74,7 +99,7 @@ function App() {
           </main>
           <Footer />
           </Router>
-        </StravaProvider>
+        </HealthProvider>
       </DemoProvider>
     </AuthProvider>
   );

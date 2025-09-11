@@ -4,7 +4,7 @@ const STRAVA_CLIENT_ID = import.meta.env.VITE_STRAVA_CLIENT_ID
 const STRAVA_CLIENT_SECRET = import.meta.env.VITE_STRAVA_CLIENT_SECRET
 const STRAVA_REDIRECT_URI = import.meta.env.VITE_STRAVA_REDIRECT_URI
 
-const stravaApi = axios.create({
+const stravaClient = axios.create({
   baseURL: 'https://www.strava.com/api/v3',
   timeout: 10000
 })
@@ -123,7 +123,7 @@ export const refreshAccessToken = async (refreshToken) => {
 // Get athlete profile
 export const getAthleteProfile = async (accessToken) => {
   try {
-    const response = await makeApiCall(() => stravaApi.get('/athlete', {
+    const response = await makeApiCall(() => stravaClient.get('/athlete', {
       headers: {
         'Authorization': `Bearer ${accessToken}`
       }
@@ -140,7 +140,7 @@ export const getAthleteProfile = async (accessToken) => {
 // Get athlete activities
 export const getAthleteActivities = async (accessToken, page = 1, perPage = 30) => {
   try {
-    const response = await makeApiCall(() => stravaApi.get('/athlete/activities', {
+    const response = await makeApiCall(() => stravaClient.get('/athlete/activities', {
       headers: {
         'Authorization': `Bearer ${accessToken}`
       },
@@ -161,7 +161,7 @@ export const getAthleteActivities = async (accessToken, page = 1, perPage = 30) 
 // Get specific activity details
 export const getActivityDetails = async (accessToken, activityId) => {
   try {
-    const response = await makeApiCall(() => stravaApi.get(`/activities/${activityId}`, {
+    const response = await makeApiCall(() => stravaClient.get(`/activities/${activityId}`, {
       headers: {
         'Authorization': `Bearer ${accessToken}`
       }
@@ -181,3 +181,15 @@ export const getRateLimitState = () => ({
   remainingRequests: Math.max(0, RATE_LIMIT_REQUESTS - rateLimitState.requests),
   windowTimeLeft: Math.max(0, (rateLimitState.windowStart + RATE_LIMIT_WINDOW) - Date.now())
 })
+
+// Export stravaApi object for backwards compatibility
+export const stravaApi = {
+  getStravaAuthUrl,
+  exchangeCodeForTokens,
+  refreshAccessToken,
+  getAthleteProfile,
+  getAthleteActivities,
+  getActivityDetails,
+  getRateLimitState,
+  connectStrava: exchangeCodeForTokens
+}

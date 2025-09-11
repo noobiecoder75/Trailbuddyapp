@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { useStrava } from '../../contexts/StravaContext'
+import { useHealth } from '../../contexts/HealthContext'
 import { useDemo } from '../../contexts/DemoContext'
 import { getStravaAuthUrl } from '../../lib/stravaApi'
 
 const StravaConnect = () => {
-  const { isConnected, athlete, loading, error, disconnectStrava, connectStrava } = useStrava()
+  const { isConnected, athlete, loading, error, disconnectStrava, connectStrava } = useHealth()
   const { isDemoMode } = useDemo()
   const [isConnecting, setIsConnecting] = useState(false)
 

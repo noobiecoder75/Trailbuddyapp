@@ -1,16 +1,17 @@
 import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { useStrava } from '../contexts/StravaContext'
+import { useHealth } from '../contexts/HealthContext'
 import { useDemo } from '../contexts/DemoContext'
 import { Link } from 'react-router-dom'
 import StravaConnect from '../components/strava/StravaConnect'
+import HealthConnections from '../components/health/HealthConnections'
 import ActivityList from '../components/strava/ActivityList'
 import Button from '../components/ui/Button'
 import Card from '../components/ui/Card'
 
 const Dashboard = () => {
   const { user } = useAuth()
-  const { isConnected, athlete, activities } = useStrava()
+  const { isConnected, athlete, activities } = useHealth()
   const { isDemoMode, demoUser, upcomingActivities } = useDemo()
   
   // Tab state management
@@ -45,7 +46,7 @@ const Dashboard = () => {
             </h1>
             <p className="text-xl text-mountain-600 max-w-2xl mx-auto mb-8">
               Hey {isDemoMode ? demoUser?.name?.split(' ')[0] : user?.email?.split('@')[0]}! Ready to find your perfect adventure partner? 
-              Connect your Strava account to get started.
+              Connect your health apps to get started.
             </p>
           </div>
 
@@ -82,21 +83,10 @@ const Dashboard = () => {
             </Card>
           </div>
 
-          {/* Connect Strava Section */}
-          <Card className="text-center bg-gradient-to-br from-primary-50 to-secondary-50 border-0">
-            <div className="max-w-md mx-auto">
-              <h2 className="text-2xl font-display font-bold text-mountain-900 mb-4">
-                Connect Your Strava Account
-              </h2>
-              <p className="text-mountain-600 mb-6">
-                We'll analyze your activities to help match you with compatible adventure partners in BC.
-              </p>
-              <StravaConnect />
-              <p className="text-sm text-mountain-500 mt-4">
-                Your data is secure and only used for partner matching
-              </p>
-            </div>
-          </Card>
+          {/* Health Connections Section */}
+          <div className="max-w-6xl mx-auto">
+            <HealthConnections />
+          </div>
         </div>
       </div>
     )
