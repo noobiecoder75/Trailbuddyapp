@@ -105,7 +105,7 @@ const getRedirectUri = () => {
   if (typeof window !== 'undefined') {
     const origin = window.location.origin
     if (origin.includes('trail-mate.ca')) {
-      return 'https://www.trail-mate.ca/auth/strava/callback'
+      return 'https://trail-mate.ca/auth/strava/callback'
     }
   }
   // Fallback to environment variable for localhost
@@ -115,10 +115,14 @@ const getRedirectUri = () => {
 // Exchange authorization code for access token
 export const exchangeCodeForTokens = async (code) => {
   try {
+    console.log('=== STRAVA TOKEN EXCHANGE DEBUG ===')
     console.log('Attempting to exchange code for tokens...')
     console.log('Client ID:', STRAVA_CLIENT_ID ? 'Present' : 'Missing')
     console.log('Client Secret:', STRAVA_CLIENT_SECRET ? 'Present' : 'Missing')
+    console.log('Code received:', code)
+    console.log('Code type:', typeof code)
     console.log('Code length:', code ? code.length : 'No code provided')
+    console.log('Code is truthy:', !!code)
     
     const redirectUri = getRedirectUri()
     console.log('Using redirect URI:', redirectUri)
