@@ -48,29 +48,53 @@ export const StravaProvider = ({ children }) => {
 
   const loadStravaTokens = async () => {
     try {
+      console.log('=== LOADING STRAVA TOKENS ===')
+      console.log('User ID:', user?.id)
+      
       const { data, error } = await supabase
         .from('user_strava_tokens')
         .select('*')
         .eq('user_id', user.id)
         .single()
 
+      console.log('Supabase query result:')
+      console.log('- Data:', data)
+      console.log('- Error:', error)
+
       if (error && error.code !== 'PGRST116') {
+        console.error('Supabase error (not "no rows"):', error)
         throw error
       }
 
       if (data) {
+        console.log('=== TOKENS FOUND IN DATABASE ===')
+        console.log('- Access token length:', data.access_token?.length)
+        console.log('- Refresh token length:', data.refresh_token?.length)
+        console.log('- Expires at:', data.expires_at)
+        console.log('- Athlete ID:', data.athlete_id)
+        
         setStravaTokens(data)
+        console.log('Tokens loaded into state')
+        
         // Load athlete profile if tokens exist
         try {
+          console.log('Attempting to get athlete profile...')
           const profile = await getAthleteProfile(data.access_token)
+          console.log('Athlete profile loaded:', profile?.firstname)
           setAthlete(profile)
         } catch (error) {
+          console.log('Athlete profile failed:', error.message)
           if (error.message === 'Token expired') {
+            console.log('Token expired, refreshing with refresh token...')
             await handleTokenRefresh(data.refresh_token)
           }
         }
+      } else {
+        console.log('=== NO TOKENS FOUND IN DATABASE ===')
+        console.log('User will need to connect Strava')
       }
     } catch (error) {
+      console.error('=== ERROR LOADING STRAVA TOKENS ===')
       console.error('Error loading Strava tokens:', error)
     }
   }

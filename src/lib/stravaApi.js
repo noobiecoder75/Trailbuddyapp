@@ -200,7 +200,12 @@ export const refreshAccessToken = async (refreshToken) => {
       grant_type: 'refresh_token'
     })
     
-    console.log('Token refresh successful')
+    console.log('=== TOKEN REFRESH SUCCESSFUL ===')
+    console.log('New access token length:', response.data.access_token?.length)
+    console.log('New refresh token length:', response.data.refresh_token?.length)
+    console.log('Access token expires at:', response.data.expires_at)
+    console.log('Access token expires in:', response.data.expires_in, 'seconds')
+    
     return response.data
   } catch (error) {
     console.error('Token refresh failed with detailed error:')
