@@ -36,6 +36,7 @@ const Header = () => {
   const authenticatedNavigation = [
     { name: 'Dashboard', href: '/dashboard' },
     { name: 'Find Partners', href: '/find-partners' },
+    { name: 'Health Analysis', href: '/analysis' },
     { name: 'Plan Activity', href: '/plan-activity' },
     { name: 'Profile', href: '/profile' },
   ]
