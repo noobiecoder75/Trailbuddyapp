@@ -66,8 +66,8 @@ const HealthConnections = () => {
   }
 
   const handleConnect = async (providerType) => {
-    // Show setup wizard for Apple Health on iOS
-    if (providerType === 'apple_health' && platform.isIOS) {
+    // Show setup wizard for Apple Health (enabled for all platforms for testing)
+    if (providerType === 'apple_health') {
       setShowAppleHealthSetup(true)
       return
     }

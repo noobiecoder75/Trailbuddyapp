@@ -501,7 +501,8 @@ export const HealthProvider = ({ children }) => {
     return {
       strava: true, // Available on all platforms
       google_health: true, // Google Fit works on all platforms via web API
-      apple_health: platform === 'ios'
+      apple_health: true // Temporarily enabled for all platforms for testing
+      // apple_health: platform === 'ios' // Original iOS-only logic
     }
   }
 
