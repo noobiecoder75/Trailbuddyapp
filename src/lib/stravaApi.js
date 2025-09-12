@@ -82,7 +82,7 @@ export const getStravaAuthUrl = () => {
     if (typeof window !== 'undefined') {
       const origin = window.location.origin
       if (origin.includes('trail-mate.ca')) {
-        return 'https://www.trail-mate.ca/auth/strava/callback'
+        return 'https://trail-mate.ca/auth/strava/callback'
       }
     }
     // Fallback to environment variable for localhost
