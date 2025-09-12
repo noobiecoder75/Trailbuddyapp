@@ -11,27 +11,46 @@ const StravaCallback = () => {
     const handleCallback = async () => {
       const code = searchParams.get('code')
       const errorParam = searchParams.get('error')
+      const state = searchParams.get('state')
+      const scope = searchParams.get('scope')
+
+      console.log('StravaCallback received parameters:')
+      console.log('- Code:', code ? `${code.substring(0, 10)}...` : 'None')
+      console.log('- Error:', errorParam)
+      console.log('- State:', state)
+      console.log('- Scope:', scope)
+      console.log('- Full URL:', window.location.href)
 
       if (errorParam) {
         // User denied access
-        console.error('Strava OAuth error:', errorParam)
+        console.error('Strava OAuth error parameter received:', errorParam)
         navigate('/profile?error=access_denied')
         return
       }
 
       if (code) {
         try {
+          console.log('Attempting to connect Strava with authorization code...')
           const success = await connectStrava(code)
+          console.log('Connect Strava result:', success)
+          
           if (success) {
+            console.log('Strava connection successful, redirecting to dashboard...')
             navigate('/dashboard?strava=connected')
           } else {
+            console.error('Strava connection returned false, redirecting with error...')
             navigate('/profile?error=connection_failed')
           }
         } catch (error) {
-          console.error('Error connecting to Strava:', error)
+          console.error('Error in StravaCallback handleCallback:')
+          console.error('Error type:', error.constructor.name)
+          console.error('Error message:', error.message)
+          console.error('Error stack:', error.stack)
+          console.error('Full error object:', error)
           navigate('/profile?error=connection_failed')
         }
       } else {
+        console.error('No authorization code received in callback')
         navigate('/profile?error=no_code')
       }
     }

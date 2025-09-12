@@ -13,11 +13,15 @@ class GoogleFitApi {
 
   // Check if user has Google Fit permissions
   async checkFitPermissions() {
+    console.log('Checking Google Fit permissions...')
     const { data: { session } } = await supabase.auth.getSession()
     
     if (!session?.provider_token) {
+      console.log('No provider token found in session')
       return false
     }
+
+    console.log('Provider token exists, validating scopes...')
 
     // Check if token includes fitness scopes
     try {
@@ -29,14 +33,26 @@ class GoogleFitApi {
         body: `access_token=${session.provider_token}`
       })
 
-      if (!response.ok) return false
+      console.log('Token validation response status:', response.status)
+      if (!response.ok) {
+        console.log('Token validation failed')
+        return false
+      }
 
       const tokenInfo = await response.json()
-      const scopes = tokenInfo.scope?.split(' ') || []
+      console.log('Token info received:', tokenInfo)
       
-      return scopes.some(scope => scope.includes('fitness'))
+      const scopes = tokenInfo.scope?.split(' ') || []
+      console.log('Available scopes:', scopes)
+      
+      const hasFitnessScopes = scopes.some(scope => scope.includes('fitness'))
+      console.log('Has fitness scopes:', hasFitnessScopes)
+      
+      return hasFitnessScopes
     } catch (error) {
-      console.error('Error checking Fit permissions:', error)
+      console.error('Error checking Fit permissions:')
+      console.error('Error message:', error.message)
+      console.error('Full error:', error)
       return false
     }
   }
@@ -44,32 +60,75 @@ class GoogleFitApi {
   // Connect to Google Fit (request permissions)
   async connectGoogleFit() {
     try {
-      // Sign out first to force re-authentication with new scopes
-      await supabase.auth.signOut()
+      console.log('Starting Google Fit connection process...')
       
-      // Sign in with Google including Fit scopes
+      // Check current session first
+      const { data: { session } } = await supabase.auth.getSession()
+      console.log('Current session:', session ? 'Present' : 'None')
+      console.log('Current user:', session?.user?.email || 'None')
+      
+      if (session?.provider_token) {
+        console.log('Existing provider token found, checking scopes...')
+        const hasScopes = await this.checkFitPermissions()
+        console.log('Has fitness scopes:', hasScopes)
+        
+        if (hasScopes) {
+          console.log('User already has Google Fit permissions')
+          return {
+            success: true,
+            accessToken: session.provider_token,
+            providerUserId: session.user.user_metadata?.sub,
+            athlete: {
+              id: session.user.user_metadata?.sub,
+              name: session.user.user_metadata?.full_name,
+              email: session.user.email
+            },
+            message: 'Google Fit already connected'
+          }
+        }
+      }
+      
+      console.log('Initiating Google OAuth with Fit scopes...')
+      const redirectUrl = `${window.location.origin}/auth/health/callback?provider=google_fit`
+      console.log('Redirect URL:', redirectUrl)
+      
+      // Sign in with Google including Fit scopes (without signing out existing session)
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard`,
+          redirectTo: redirectUrl,
           scopes: [
+            'openid',
+            'email', 
+            'profile',
             'https://www.googleapis.com/auth/fitness.activity.read',
             'https://www.googleapis.com/auth/fitness.body.read',
             'https://www.googleapis.com/auth/fitness.location.read',
             'https://www.googleapis.com/auth/fitness.heart_rate.read',
             'https://www.googleapis.com/auth/fitness.sleep.read'
-          ].join(' ')
+          ].join(' '),
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent'
+          }
         }
       })
 
-      if (error) throw error
+      console.log('OAuth initiation result:', { data, error })
+      if (error) {
+        console.error('OAuth initiation error:', error)
+        throw error
+      }
 
       return {
         success: true,
         message: 'Redirecting to Google for Fit permissions...'
       }
     } catch (error) {
-      console.error('Error connecting to Google Fit:', error)
+      console.error('Error connecting to Google Fit:')
+      console.error('Error message:', error.message)
+      console.error('Error code:', error.code)
+      console.error('Full error object:', error)
       throw new Error('Failed to connect to Google Fit: ' + error.message)
     }
   }

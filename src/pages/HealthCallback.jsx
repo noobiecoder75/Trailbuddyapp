@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useHealth } from '../contexts/HealthContext'
 import { useAuth } from '../contexts/AuthContext'
+import { supabase } from '../lib/supabase'
 
 const HealthCallback = () => {
   const [searchParams] = useSearchParams()
@@ -20,13 +21,19 @@ const HealthCallback = () => {
 
     const handleCallback = async () => {
       try {
+        console.log('HealthCallback initiated with URL:', window.location.href)
+        console.log('Search params:', Object.fromEntries(searchParams.entries()))
+        
         // Determine provider from URL parameters or path
         const provider = searchParams.get('provider') || 
                         (window.location.pathname.includes('strava') ? 'strava' : 
-                         window.location.pathname.includes('google') ? 'google_health' :
+                         window.location.pathname.includes('google') ? 'google_fit' :
                          window.location.pathname.includes('apple') ? 'apple_health' : null)
 
+        console.log('Detected provider:', provider)
+        
         if (!provider) {
+          console.error('No provider detected from URL')
           throw new Error('Unknown health provider')
         }
 
@@ -48,17 +55,22 @@ const HealthCallback = () => {
           
           authData = code
           
-        } else if (provider === 'google_health') {
-          // Google Health Connect callback
-          const authSuccess = searchParams.get('auth_success')
-          const authData = searchParams.get('auth_data')
+        } else if (provider === 'google_fit') {
+          // Google Fit OAuth callback - similar to Strava but through Supabase OAuth
+          console.log('Processing Google Fit OAuth callback')
           
-          if (authSuccess !== 'true') {
-            throw new Error('Google Health authorization was not successful')
+          // Check if this is a successful OAuth callback by checking session
+          const { data: { session } } = await supabase.auth.getSession()
+          console.log('Current session after OAuth:', session ? 'Present' : 'None')
+          
+          if (!session || !session.provider_token) {
+            throw new Error('No Google OAuth session found after authorization')
           }
           
-          if (authData) {
-            authData = JSON.parse(decodeURIComponent(authData))
+          // The session contains the access token, so we don't need additional authData
+          authData = {
+            accessToken: session.provider_token,
+            user: session.user
           }
           
         } else if (provider === 'apple_health') {
@@ -76,9 +88,14 @@ const HealthCallback = () => {
         }
 
         // Connect the provider
+        console.log('Attempting to connect provider:', provider)
+        console.log('Auth data:', authData ? 'Present' : 'None')
+        
         const connected = await connectProvider(provider, authData)
+        console.log('Connection result:', connected)
         
         if (connected) {
+          console.log('Provider connection successful')
           setSuccess(true)
           // Store success message and redirect
           localStorage.setItem('health_connection_success', JSON.stringify({
@@ -86,10 +103,12 @@ const HealthCallback = () => {
             timestamp: Date.now()
           }))
           
+          console.log('Redirecting to dashboard in 2 seconds...')
           setTimeout(() => {
             navigate('/dashboard')
           }, 2000)
         } else {
+          console.error('Provider connection failed')
           throw new Error(`Failed to connect ${provider}`)
         }
         

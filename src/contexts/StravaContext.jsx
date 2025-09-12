@@ -140,15 +140,26 @@ export const StravaProvider = ({ children }) => {
         throw new Error('No authorization code provided')
       }
 
+      console.log('Starting OAuth token exchange with code:', code?.substring(0, 10) + '...')
+      
       const tokens = await exchangeCodeForTokens(code)
+      console.log('Token exchange completed, saving tokens to database...')
+      
       await saveStravaTokens(tokens)
+      console.log('Tokens saved successfully, fetching athlete profile...')
       
       // Get athlete profile
       const profile = await getAthleteProfile(tokens.access_token)
+      console.log('Athlete profile fetched successfully:', profile?.firstname, profile?.lastname)
       setAthlete(profile)
       
       return true
     } catch (error) {
+      console.error('Strava connection failed in connectStrava function:')
+      console.error('Error type:', error.constructor.name)
+      console.error('Error message:', error.message)
+      console.error('Full error object:', error)
+      
       setError(error.message)
       return false
     } finally {

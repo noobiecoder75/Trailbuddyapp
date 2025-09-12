@@ -65,13 +65,20 @@ export const HealthProvider = ({ children }) => {
 
   const loadHealthConnections = async () => {
     try {
+      console.log('HealthContext: Loading health connections for user:', user.id)
+      
       const { data, error } = await supabase
         .from('user_health_connections')
         .select('*')
         .eq('user_id', user.id)
         .eq('is_active', true)
 
-      if (error) throw error
+      if (error) {
+        console.error('Error querying health connections:', error)
+        throw error
+      }
+
+      console.log('Health connections from database:', data)
 
       // Transform array to object keyed by provider_type
       const connections = {}
@@ -80,15 +87,23 @@ export const HealthProvider = ({ children }) => {
           ...conn,
           isConnected: true
         }
+        console.log(`Loaded connection for ${conn.provider_type}:`, {
+          provider_user_id: conn.provider_user_id,
+          has_access_token: !!conn.access_token,
+          last_sync: conn.last_sync_at
+        })
       })
       
+      console.log('Transformed connections:', Object.keys(connections))
       setHealthConnections(connections)
       
       // Load athlete data for connected providers
       for (const conn of data) {
         if (conn.provider_type === 'strava' && conn.access_token) {
           try {
+            console.log('Loading Strava athlete profile...')
             const athlete = await stravaApi.getAthleteProfile(conn.access_token)
+            console.log('Strava athlete loaded:', athlete.firstname, athlete.lastname)
             setHealthConnections(prev => ({
               ...prev,
               strava: { ...prev.strava, athlete }
@@ -96,8 +111,18 @@ export const HealthProvider = ({ children }) => {
           } catch (err) {
             console.log('Strava token may be expired:', err.message)
           }
+        } else if (conn.provider_type === 'google_fit' && conn.access_token) {
+          console.log('Google Fit connection found, checking permissions...')
+          try {
+            const hasPerms = await googleFitApi.checkFitPermissions()
+            console.log('Google Fit permissions valid:', hasPerms)
+          } catch (err) {
+            console.log('Error checking Google Fit permissions:', err.message)
+          }
         }
       }
+      
+      console.log('Health connections loading completed')
     } catch (error) {
       console.error('Error loading health connections:', error)
     }
@@ -136,11 +161,15 @@ export const HealthProvider = ({ children }) => {
   }
 
   const connectProvider = async (providerType, authData = null) => {
+    console.log(`HealthContext: Starting connection for ${providerType}`)
+    console.log('Auth data provided:', authData ? 'Yes' : 'No')
+    
     setLoading(true)
     setError(null)
 
     try {
       if (isDemoMode) {
+        console.log('Demo mode: simulating connection')
         // Demo mode simulation
         await new Promise(resolve => setTimeout(resolve, 1500))
         setHealthConnections(prev => ({
@@ -155,37 +184,76 @@ export const HealthProvider = ({ children }) => {
       
       switch (providerType) {
         case 'strava':
+          console.log('Connecting to Strava...')
           connectionResult = await stravaApi.connectStrava(authData)
           break
         case 'google_fit':
-          connectionResult = await googleFitApi.connectGoogleFit()
+          console.log('Connecting to Google Fit...')
+          // For Google Fit, if authData is provided, it means we're in the callback
+          if (authData && authData.accessToken) {
+            // We're in the callback, simulate connection success
+            console.log('Google Fit callback detected, processing...')
+            connectionResult = {
+              success: true,
+              accessToken: authData.accessToken,
+              providerUserId: authData.user?.user_metadata?.sub || authData.user?.id,
+              athlete: {
+                id: authData.user?.user_metadata?.sub || authData.user?.id,
+                name: authData.user?.user_metadata?.full_name || authData.user?.user_metadata?.name,
+                email: authData.user?.email
+              },
+              scopes: ['fitness.activity.read', 'fitness.body.read'],
+              metadata: authData.user?.user_metadata
+            }
+          } else {
+            // Initial connection request
+            connectionResult = await googleFitApi.connectGoogleFit()
+          }
           break
         case 'apple_health':
+          console.log('Connecting to Apple Health...')
           connectionResult = await appleHealthApi.connectAppleHealth(platform)
           break
         default:
           throw new Error(`Unsupported provider: ${providerType}`)
       }
 
+      console.log('Connection result:', connectionResult)
+
       if (connectionResult.success) {
+        console.log('Connection successful, saving to database...')
+        
         // Save connection to database
+        const connectionData = {
+          user_id: user.id,
+          provider_type: providerType,
+          provider_user_id: connectionResult.providerUserId?.toString(),
+          access_token: connectionResult.accessToken,
+          refresh_token: connectionResult.refreshToken,
+          expires_at: connectionResult.expiresAt,
+          scopes: connectionResult.scopes || [],
+          connection_data: connectionResult.metadata || {},
+          last_sync_at: new Date().toISOString(),
+          is_active: true
+        }
+        
+        console.log('Saving connection data:', {
+          ...connectionData,
+          access_token: connectionData.access_token ? 'Present' : 'Missing'
+        })
+        
         const { data, error } = await supabase
           .from('user_health_connections')
-          .upsert({
-            user_id: user.id,
-            provider_type: providerType,
-            provider_user_id: connectionResult.providerUserId,
-            access_token: connectionResult.accessToken,
-            refresh_token: connectionResult.refreshToken,
-            expires_at: connectionResult.expiresAt,
-            scopes: connectionResult.scopes || [],
-            connection_data: connectionResult.metadata || {},
-            last_sync_at: new Date().toISOString()
-          }, { onConflict: 'user_id,provider_type' })
+          .upsert(connectionData, { onConflict: 'user_id,provider_type' })
           .select()
           .single()
 
-        if (error) throw error
+        if (error) {
+          console.error('Database save error:', error)
+          throw error
+        }
+
+        console.log('Database save successful:', data)
 
         // Update local state
         setHealthConnections(prev => ({
@@ -197,15 +265,21 @@ export const HealthProvider = ({ children }) => {
           }
         }))
 
+        console.log('Connection state updated, triggering initial sync...')
         // Trigger initial sync
         await syncProviderActivities(providerType)
         
+        console.log('Provider connection completed successfully')
         return true
       }
       
+      console.log('Connection result was not successful')
       return false
     } catch (error) {
-      console.error(`Error connecting ${providerType}:`, error)
+      console.error(`Error connecting ${providerType}:`)
+      console.error('Error message:', error.message)
+      console.error('Error stack:', error.stack)
+      console.error('Full error:', error)
       setError(error.message)
       return false
     } finally {

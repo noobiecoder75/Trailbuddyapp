@@ -103,22 +103,65 @@ export const getStravaAuthUrl = () => {
 // Exchange authorization code for access token
 export const exchangeCodeForTokens = async (code) => {
   try {
-    const response = await axios.post('https://www.strava.com/oauth/token', {
+    console.log('Attempting to exchange code for tokens...')
+    console.log('Client ID:', STRAVA_CLIENT_ID ? 'Present' : 'Missing')
+    console.log('Client Secret:', STRAVA_CLIENT_SECRET ? 'Present' : 'Missing')
+    console.log('Code length:', code ? code.length : 'No code provided')
+    
+    const requestPayload = {
       client_id: STRAVA_CLIENT_ID,
       client_secret: STRAVA_CLIENT_SECRET,
       code: code,
       grant_type: 'authorization_code'
+    }
+    
+    console.log('Request payload:', {
+      client_id: requestPayload.client_id ? 'Present' : 'Missing',
+      client_secret: requestPayload.client_secret ? 'Present' : 'Missing',
+      code: requestPayload.code ? `${requestPayload.code.substring(0, 10)}...` : 'Missing',
+      grant_type: requestPayload.grant_type
     })
     
+    const response = await axios.post('https://www.strava.com/oauth/token', requestPayload)
+    
+    console.log('Token exchange successful')
     return response.data
   } catch (error) {
-    throw new Error('Failed to exchange code for tokens: ' + error.message)
+    console.error('Token exchange failed with detailed error:')
+    console.error('Error message:', error.message)
+    console.error('Error code:', error.code)
+    console.error('Response status:', error.response?.status)
+    console.error('Response data:', error.response?.data)
+    console.error('Response headers:', error.response?.headers)
+    console.error('Request URL:', error.config?.url)
+    console.error('Request method:', error.config?.method)
+    console.error('Request data:', error.config?.data)
+    
+    // Create a more detailed error message
+    let errorMessage = 'Failed to exchange code for tokens: ' + error.message
+    
+    if (error.response) {
+      errorMessage += `\nStatus: ${error.response.status}`
+      if (error.response.data) {
+        if (typeof error.response.data === 'string') {
+          errorMessage += `\nResponse: ${error.response.data}`
+        } else {
+          errorMessage += `\nResponse: ${JSON.stringify(error.response.data, null, 2)}`
+        }
+      }
+    }
+    
+    console.error('Complete error message:', errorMessage)
+    throw new Error(errorMessage)
   }
 }
 
 // Refresh access token
 export const refreshAccessToken = async (refreshToken) => {
   try {
+    console.log('Attempting to refresh access token...')
+    console.log('Refresh token length:', refreshToken ? refreshToken.length : 'No refresh token provided')
+    
     const response = await axios.post('https://www.strava.com/oauth/token', {
       client_id: STRAVA_CLIENT_ID,
       client_secret: STRAVA_CLIENT_SECRET,
@@ -126,9 +169,32 @@ export const refreshAccessToken = async (refreshToken) => {
       grant_type: 'refresh_token'
     })
     
+    console.log('Token refresh successful')
     return response.data
   } catch (error) {
-    throw new Error('Failed to refresh token: ' + error.message)
+    console.error('Token refresh failed with detailed error:')
+    console.error('Error message:', error.message)
+    console.error('Error code:', error.code)
+    console.error('Response status:', error.response?.status)
+    console.error('Response data:', error.response?.data)
+    console.error('Response headers:', error.response?.headers)
+    
+    // Create a more detailed error message
+    let errorMessage = 'Failed to refresh token: ' + error.message
+    
+    if (error.response) {
+      errorMessage += `\nStatus: ${error.response.status}`
+      if (error.response.data) {
+        if (typeof error.response.data === 'string') {
+          errorMessage += `\nResponse: ${error.response.data}`
+        } else {
+          errorMessage += `\nResponse: ${JSON.stringify(error.response.data, null, 2)}`
+        }
+      }
+    }
+    
+    console.error('Complete error message:', errorMessage)
+    throw new Error(errorMessage)
   }
 }
 
