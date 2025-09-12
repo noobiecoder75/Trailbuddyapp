@@ -7,6 +7,7 @@ import StravaCallback from './pages/StravaCallback';
 import HealthCallback from './pages/HealthCallback';
 import PlanActivity from './pages/PlanActivity';
 import FindPartners from './pages/FindPartners';
+import HealthAnalysis from './pages/HealthAnalysis';
 import Terms from './pages/Terms';
 import { AuthProvider } from './contexts/AuthContext';
 import { HealthProvider } from './contexts/HealthContext';
@@ -88,6 +89,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <PlanActivity />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/analysis"
+                element={
+                  <ProtectedRoute>
+                    <HealthAnalysis />
                   </ProtectedRoute>
                 }
               />

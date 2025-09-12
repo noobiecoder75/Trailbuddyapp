@@ -115,8 +115,13 @@ const Dashboard = () => {
                   </svg>
                 </Button>
               </Link>
-              <Link to="/plan-activity" className="w-full sm:w-auto">
+              <Link to="/analysis" className="w-full sm:w-auto">
                 <Button variant="secondary" size="sm" className="w-full sm:w-auto">
+                  Health Analysis
+                </Button>
+              </Link>
+              <Link to="/plan-activity" className="w-full sm:w-auto">
+                <Button variant="outline" size="sm" className="w-full sm:w-auto">
                   Plan Activity
                 </Button>
               </Link>
@@ -249,15 +254,15 @@ const Dashboard = () => {
           </Card>
 
           <Card hover className="cursor-pointer">
-            <Link to="/profile" className="block">
+            <Link to="/analysis" className="block">
               <div className="text-center p-4 sm:p-6">
                 <div className="w-12 h-12 sm:w-16 sm:h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4">
                   <svg className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                   </svg>
                 </div>
-                <h3 className="text-lg sm:text-xl font-semibold text-mountain-900 mb-2">Update Profile</h3>
-                <p className="text-sm sm:text-base text-mountain-600">Manage your preferences and Strava connection</p>
+                <h3 className="text-lg sm:text-xl font-semibold text-mountain-900 mb-2">Health Analysis</h3>
+                <p className="text-sm sm:text-base text-mountain-600">View detailed insights from your fitness data</p>
               </div>
             </Link>
           </Card>
