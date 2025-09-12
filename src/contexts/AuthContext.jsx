@@ -108,18 +108,29 @@ export const AuthProvider = ({ children }) => {
     return data
   }
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = async (includeFitnessScopes = false) => {
     // Skip Supabase in demo mode
     if (isDemoMode) {
       console.log('Demo mode: Skipping Google sign in')
       return { user: demoUser }
     }
 
+    const options = {
+      redirectTo: `${window.location.origin}/dashboard`
+    }
+
+    // Add Google Fit scopes if requested
+    if (includeFitnessScopes) {
+      options.scopes = [
+        'https://www.googleapis.com/auth/fitness.activity.read',
+        'https://www.googleapis.com/auth/fitness.body.read',
+        'https://www.googleapis.com/auth/fitness.location.read'
+      ].join(' ')
+    }
+
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/dashboard`
-      }
+      options
     })
     
     if (error) {

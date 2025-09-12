@@ -77,9 +77,21 @@ const makeApiCall = async (apiCall) => {
 
 // Generate Strava OAuth URL
 export const getStravaAuthUrl = () => {
+  // Dynamically determine redirect URI based on current domain
+  const getRedirectUri = () => {
+    if (typeof window !== 'undefined') {
+      const origin = window.location.origin
+      if (origin.includes('trail-mate.ca')) {
+        return 'https://www.trail-mate.ca/auth/strava/callback'
+      }
+    }
+    // Fallback to environment variable for localhost
+    return STRAVA_REDIRECT_URI
+  }
+
   const params = new URLSearchParams({
     client_id: STRAVA_CLIENT_ID,
-    redirect_uri: STRAVA_REDIRECT_URI,
+    redirect_uri: getRedirectUri(),
     response_type: 'code',
     scope: 'activity:read,profile:read_all',
     approval_prompt: 'auto'

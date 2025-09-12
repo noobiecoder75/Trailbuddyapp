@@ -3,7 +3,7 @@ import { useAuth } from './AuthContext'
 import { useDemo } from './DemoContext'
 import { supabase } from '../lib/supabase'
 import { stravaApi } from '../lib/stravaApi'
-import { googleHealthApi } from '../lib/googleHealthApi'
+import { googleFitApi } from '../lib/googleFitApi'
 import { appleHealthApi } from '../lib/appleHealthApi'
 
 const HealthContext = createContext({})
@@ -157,8 +157,8 @@ export const HealthProvider = ({ children }) => {
         case 'strava':
           connectionResult = await stravaApi.connectStrava(authData)
           break
-        case 'google_health':
-          connectionResult = await googleHealthApi.connectGoogleHealth(platform)
+        case 'google_fit':
+          connectionResult = await googleFitApi.connectGoogleFit()
           break
         case 'apple_health':
           connectionResult = await appleHealthApi.connectAppleHealth(platform)
@@ -265,8 +265,8 @@ export const HealthProvider = ({ children }) => {
             30
           )
           break
-        case 'google_health':
-          activities = await googleHealthApi.getActivities(connection, forceRefresh)
+        case 'google_fit':
+          activities = await googleFitApi.getActivities(forceRefresh)
           break
         case 'apple_health':
           activities = await appleHealthApi.getActivities(connection, forceRefresh)
@@ -336,7 +336,7 @@ export const HealthProvider = ({ children }) => {
           activity_level: calculateActivityLevel(activity)
         }
       
-      case 'google_health':
+      case 'google_fit':
         return {
           ...baseActivity,
           provider_activity_id: activity.id || `${activity.startTime}_${activity.type}`,
@@ -419,7 +419,7 @@ export const HealthProvider = ({ children }) => {
   const getAvailableProviders = () => {
     return {
       strava: true, // Available on all platforms
-      google_health: platform === 'android',
+      google_fit: true, // Google Fit works on all platforms via web API
       apple_health: platform === 'ios'
     }
   }

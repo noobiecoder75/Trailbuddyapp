@@ -32,9 +32,9 @@ const HealthConnections = () => {
       available: true,
       platform: 'All platforms'
     },
-    google_health: {
-      name: 'Google Health',
-      description: 'Sync your daily health and fitness metrics from Health Connect',
+    google_fit: {
+      name: 'Google Fit',
+      description: 'Sync your fitness data from Google Fit across all devices',
       icon: (
         <svg className="h-8 w-8 text-blue-500" fill="currentColor" viewBox="0 0 24 24">
           <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -44,9 +44,9 @@ const HealthConnections = () => {
         </svg>
       ),
       color: 'blue',
-      available: availableProviders.google_health,
-      platform: 'Android only',
-      requiresApp: true
+      available: availableProviders.google_fit,
+      platform: 'All platforms',
+      requiresApp: false
     },
     apple_health: {
       name: 'Apple Health',
