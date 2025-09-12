@@ -143,15 +143,32 @@ export const AuthProvider = ({ children }) => {
   }
 
   const signOut = async () => {
+    console.log('AuthContext: Starting sign out process')
+    
     // Skip Supabase in demo mode
     if (isDemoMode) {
-      console.log('Demo mode: Skipping sign out')
+      console.log('Demo mode: Skipping sign out, clearing user state')
       setUser(null)
-      return
+      return { success: true }
     }
 
-    const { error } = await supabase.auth.signOut()
-    if (error) throw error
+    try {
+      console.log('AuthContext: Calling Supabase signOut')
+      const { error } = await supabase.auth.signOut()
+      
+      if (error) {
+        console.error('AuthContext: Sign out error:', error)
+        throw error
+      }
+      
+      console.log('AuthContext: Sign out successful')
+      // Clear user state immediately
+      setUser(null)
+      return { success: true }
+    } catch (error) {
+      console.error('AuthContext: Sign out failed:', error)
+      throw error
+    }
   }
 
   const value = {

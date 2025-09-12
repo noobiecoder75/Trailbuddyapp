@@ -100,6 +100,18 @@ export const getStravaAuthUrl = () => {
   return `https://www.strava.com/oauth/authorize?${params.toString()}`
 }
 
+// Get redirect URI (same logic as in getStravaAuthUrl)
+const getRedirectUri = () => {
+  if (typeof window !== 'undefined') {
+    const origin = window.location.origin
+    if (origin.includes('trail-mate.ca')) {
+      return 'https://www.trail-mate.ca/auth/strava/callback'
+    }
+  }
+  // Fallback to environment variable for localhost
+  return STRAVA_REDIRECT_URI
+}
+
 // Exchange authorization code for access token
 export const exchangeCodeForTokens = async (code) => {
   try {
@@ -108,18 +120,23 @@ export const exchangeCodeForTokens = async (code) => {
     console.log('Client Secret:', STRAVA_CLIENT_SECRET ? 'Present' : 'Missing')
     console.log('Code length:', code ? code.length : 'No code provided')
     
+    const redirectUri = getRedirectUri()
+    console.log('Using redirect URI:', redirectUri)
+    
     const requestPayload = {
       client_id: STRAVA_CLIENT_ID,
       client_secret: STRAVA_CLIENT_SECRET,
       code: code,
-      grant_type: 'authorization_code'
+      grant_type: 'authorization_code',
+      redirect_uri: redirectUri  // This must match the redirect_uri used in authorization
     }
     
     console.log('Request payload:', {
       client_id: requestPayload.client_id ? 'Present' : 'Missing',
       client_secret: requestPayload.client_secret ? 'Present' : 'Missing',
       code: requestPayload.code ? `${requestPayload.code.substring(0, 10)}...` : 'Missing',
-      grant_type: requestPayload.grant_type
+      grant_type: requestPayload.grant_type,
+      redirect_uri: requestPayload.redirect_uri
     })
     
     const response = await axios.post('https://www.strava.com/oauth/token', requestPayload)
@@ -148,6 +165,16 @@ export const exchangeCodeForTokens = async (code) => {
         } else {
           errorMessage += `\nResponse: ${JSON.stringify(error.response.data, null, 2)}`
         }
+      }
+      
+      // Add specific handling for invalid code error
+      if (error.response.status === 400 && 
+          error.response.data?.errors?.some(e => e.code === 'invalid' && e.field === 'code')) {
+        errorMessage += `\n\nTips: This usually means:`
+        errorMessage += `\n- The authorization code has expired (they expire in ~10 minutes)`
+        errorMessage += `\n- The code has already been used`
+        errorMessage += `\n- There's a redirect URI mismatch`
+        errorMessage += `\nTry initiating the Strava connection process again.`
       }
     }
     

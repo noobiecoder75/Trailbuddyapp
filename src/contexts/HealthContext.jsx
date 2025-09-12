@@ -111,7 +111,7 @@ export const HealthProvider = ({ children }) => {
           } catch (err) {
             console.log('Strava token may be expired:', err.message)
           }
-        } else if (conn.provider_type === 'google_fit' && conn.access_token) {
+        } else if (conn.provider_type === 'google_health' && conn.access_token) {
           console.log('Google Fit connection found, checking permissions...')
           try {
             const hasPerms = await googleFitApi.checkFitPermissions()
@@ -187,7 +187,7 @@ export const HealthProvider = ({ children }) => {
           console.log('Connecting to Strava...')
           connectionResult = await stravaApi.connectStrava(authData)
           break
-        case 'google_fit':
+        case 'google_health':
           console.log('Connecting to Google Fit...')
           // For Google Fit, if authData is provided, it means we're in the callback
           if (authData && authData.accessToken) {
@@ -339,7 +339,7 @@ export const HealthProvider = ({ children }) => {
             30
           )
           break
-        case 'google_fit':
+        case 'google_health':
           activities = await googleFitApi.getActivities(forceRefresh)
           break
         case 'apple_health':
@@ -410,7 +410,7 @@ export const HealthProvider = ({ children }) => {
           activity_level: calculateActivityLevel(activity)
         }
       
-      case 'google_fit':
+      case 'google_health':
         return {
           ...baseActivity,
           provider_activity_id: activity.id || `${activity.startTime}_${activity.type}`,
@@ -493,7 +493,7 @@ export const HealthProvider = ({ children }) => {
   const getAvailableProviders = () => {
     return {
       strava: true, // Available on all platforms
-      google_fit: true, // Google Fit works on all platforms via web API
+      google_health: true, // Google Fit works on all platforms via web API
       apple_health: platform === 'ios'
     }
   }

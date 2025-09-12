@@ -10,11 +10,17 @@ const Header = () => {
   const location = useLocation()
 
   const handleSignOut = async () => {
+    console.log('Header: Sign out button clicked')
     try {
-      await signOut()
+      console.log('Header: Calling signOut function')
+      const result = await signOut()
+      console.log('Header: Sign out result:', result)
+      console.log('Header: Navigating to home page')
       navigate('/')
     } catch (error) {
-      console.error('Error signing out:', error)
+      console.error('Header: Error signing out:', error)
+      // Still try to navigate in case of error
+      navigate('/')
     }
   }
 

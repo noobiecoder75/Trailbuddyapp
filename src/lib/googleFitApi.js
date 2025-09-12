@@ -89,7 +89,7 @@ class GoogleFitApi {
       }
       
       console.log('Initiating Google OAuth with Fit scopes...')
-      const redirectUrl = `${window.location.origin}/auth/health/callback?provider=google_fit`
+      const redirectUrl = `${window.location.origin}/auth/health/callback?provider=google_health`
       console.log('Redirect URL:', redirectUrl)
       
       // Sign in with Google including Fit scopes (without signing out existing session)

@@ -32,7 +32,7 @@ const HealthConnections = () => {
       available: true,
       platform: 'All platforms'
     },
-    google_fit: {
+    google_health: {
       name: 'Google Fit',
       description: 'Sync your fitness data from Google Fit across all devices',
       icon: (
@@ -44,7 +44,7 @@ const HealthConnections = () => {
         </svg>
       ),
       color: 'blue',
-      available: availableProviders.google_fit,
+      available: availableProviders.google_health,
       platform: 'All platforms',
       requiresApp: false
     },

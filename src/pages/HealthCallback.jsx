@@ -27,7 +27,7 @@ const HealthCallback = () => {
         // Determine provider from URL parameters or path
         const provider = searchParams.get('provider') || 
                         (window.location.pathname.includes('strava') ? 'strava' : 
-                         window.location.pathname.includes('google') ? 'google_fit' :
+                         window.location.pathname.includes('google') ? 'google_health' :
                          window.location.pathname.includes('apple') ? 'apple_health' : null)
 
         console.log('Detected provider:', provider)
@@ -55,7 +55,7 @@ const HealthCallback = () => {
           
           authData = code
           
-        } else if (provider === 'google_fit') {
+        } else if (provider === 'google_health') {
           // Google Fit OAuth callback - similar to Strava but through Supabase OAuth
           console.log('Processing Google Fit OAuth callback')
           
