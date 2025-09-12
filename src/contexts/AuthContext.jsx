@@ -108,6 +108,29 @@ export const AuthProvider = ({ children }) => {
     return data
   }
 
+  const signInWithGoogle = async () => {
+    // Skip Supabase in demo mode
+    if (isDemoMode) {
+      console.log('Demo mode: Skipping Google sign in')
+      return { user: demoUser }
+    }
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/dashboard`
+      }
+    })
+    
+    if (error) {
+      console.error('AuthContext: Google sign in error:', error)
+      throw error
+    }
+    
+    console.log('AuthContext: Google sign in initiated')
+    return data
+  }
+
   const signOut = async () => {
     // Skip Supabase in demo mode
     if (isDemoMode) {
@@ -125,6 +148,7 @@ export const AuthProvider = ({ children }) => {
     loading,
     signUp,
     signIn,
+    signInWithGoogle,
     signOut,
   }
 
