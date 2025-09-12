@@ -102,47 +102,65 @@ class AppleHealthApi {
 
   async connectViaShortcuts() {
     // Use iOS Shortcuts to bridge HealthKit data to web
-    const shortcutUrl = this.buildHealthKitShortcutUrl()
-    
-    return new Promise((resolve, reject) => {
-      const startTime = Date.now()
-      
-      // Store connection attempt
-      localStorage.setItem('apple_health_auth_attempt', JSON.stringify({
-        timestamp: startTime,
-        callback_url: window.location.origin + '/apple-health-callback'
-      }))
-      
-      // Listen for app returning to browser
-      const handleVisibilityChange = () => {
-        if (document.visibilityState === 'visible') {
-          const returnTime = Date.now()
-          
-          // If user was away for more than 5 seconds, likely went to Shortcuts
-          if (returnTime - startTime > 5000) {
-            document.removeEventListener('visibilitychange', handleVisibilityChange)
-            
-            // Check if connection was successful
-            setTimeout(() => {
-              this.verifyShortcutsConnection()
-                .then(result => resolve(result))
-                .catch(error => reject(error))
-            }, 2000) // Wait for shortcut to complete
-          }
-        }
+    try {
+      // First check if shortcut is installed
+      const setupStatus = await this.checkSetupStatus()
+      if (!setupStatus.shortcutInstalled) {
+        // Return error that will trigger the setup wizard
+        throw new Error('SHORTCUT_NOT_INSTALLED')
       }
       
-      document.addEventListener('visibilitychange', handleVisibilityChange)
+      const shortcutUrl = this.buildHealthKitShortcutUrl()
       
-      // Launch Shortcuts
-      window.location.href = shortcutUrl
-      
-      // Fallback timeout
-      setTimeout(() => {
-        document.removeEventListener('visibilitychange', handleVisibilityChange)
-        reject(new Error('Apple Health Shortcuts connection timed out'))
-      }, 60000)
-    })
+      return new Promise((resolve, reject) => {
+        const startTime = Date.now()
+        
+        // Store connection attempt
+        localStorage.setItem('apple_health_auth_attempt', JSON.stringify({
+          timestamp: startTime,
+          callback_url: window.location.origin + '/apple-health-callback'
+        }))
+        
+        // Listen for app returning to browser
+        const handleVisibilityChange = () => {
+          if (document.visibilityState === 'visible') {
+            const returnTime = Date.now()
+            
+            // If user was away for more than 5 seconds, likely went to Shortcuts
+            if (returnTime - startTime > 5000) {
+              document.removeEventListener('visibilitychange', handleVisibilityChange)
+              
+              // Check if connection was successful
+              setTimeout(() => {
+                this.verifyShortcutsConnection()
+                  .then(result => resolve(result))
+                  .catch(error => {
+                    // If verification fails, it might be because shortcut isn't installed
+                    if (error.message.includes('No Apple Health data found')) {
+                      reject(new Error('SHORTCUT_NOT_INSTALLED'))
+                    } else {
+                      reject(error)
+                    }
+                  })
+              }, 2000) // Wait for shortcut to complete
+            }
+          }
+        }
+        
+        document.addEventListener('visibilitychange', handleVisibilityChange)
+        
+        // Launch Shortcuts
+        window.location.href = shortcutUrl
+        
+        // Fallback timeout
+        setTimeout(() => {
+          document.removeEventListener('visibilitychange', handleVisibilityChange)
+          reject(new Error('Apple Health Shortcuts connection timed out'))
+        }, 60000)
+      })
+    } catch (error) {
+      throw error
+    }
   }
 
   buildHealthKitShortcutUrl() {
@@ -152,6 +170,145 @@ class AppleHealthApi {
     
     // This would be a custom Shortcut URL that users would need to install
     return `shortcuts://run-shortcut?name=TrailBuddy-HealthKit-Export&input=${callbackUrl}&data-types=${dataTypes}`
+  }
+
+  // Setup-related methods for the setup wizard
+  async checkSetupStatus() {
+    // Check if the shortcut is installed and configured
+    const shortcutInstalled = localStorage.getItem('apple_health_shortcut_installed') === 'true'
+    const permissionsGranted = localStorage.getItem('apple_health_permissions_granted') === 'true'
+    const connectionTested = localStorage.getItem('apple_health_connection_tested') === 'true'
+    
+    return {
+      shortcutInstalled,
+      permissionsGranted,
+      connectionTested
+    }
+  }
+
+  getShortcutInstallUrl() {
+    // Generate the iCloud link for the shortcut
+    // In production, this would be a real iCloud link to your published shortcut
+    // For now, we'll create a shortcut URL that guides users to create it manually
+    
+    // This is a placeholder URL - you would replace with your actual shortcut
+    const shortcutName = 'TrailBuddy HealthKit Export'
+    const shortcutDescription = 'Export your health data to TrailBuddy'
+    
+    // Using Shortcuts gallery URL format
+    // In production: return 'https://www.icloud.com/shortcuts/YOUR_SHORTCUT_ID'
+    
+    // For development, we'll use the create shortcut flow
+    const baseUrl = 'https://www.icloud.com/shortcuts/create'
+    const actions = [
+      {
+        'WFWorkflowActionIdentifier': 'is.workflow.actions.getmyworkouts',
+        'WFWorkflowActionParameters': {
+          'WFGetWorkoutsActionWorkoutType': 'All',
+          'WFGetWorkoutsActionLimitEnabled': true,
+          'WFGetWorkoutsActionLimit': 30
+        }
+      },
+      {
+        'WFWorkflowActionIdentifier': 'is.workflow.actions.getdetailsofhealth',
+        'WFWorkflowActionParameters': {
+          'WFHealthQuantityType': 'Step Count',
+          'WFHealthQuantityStartDate': 'Last Month',
+          'WFHealthQuantityEndDate': 'Now'
+        }
+      },
+      {
+        'WFWorkflowActionIdentifier': 'is.workflow.actions.openurl',
+        'WFWorkflowActionParameters': {
+          'WFURLActionURL': window.location.origin + '/apple-health-callback?data={{Workouts}}'
+        }
+      }
+    ]
+    
+    // Create a data URL for the shortcut
+    const shortcutData = {
+      name: shortcutName,
+      description: shortcutDescription,
+      actions: actions
+    }
+    
+    // For now, return a URL that will help users create the shortcut
+    // In production, this would be your published shortcut link
+    return `shortcuts://create-shortcut?name=${encodeURIComponent(shortcutName)}&actions=${encodeURIComponent(JSON.stringify(actions))}`
+  }
+
+  async testShortcutConnection() {
+    // Test if the shortcut is properly installed and can communicate
+    try {
+      // First check if we're on iOS
+      if (!this.isSupported) {
+        return {
+          success: false,
+          error: 'Apple Health is only available on iOS devices'
+        }
+      }
+      
+      // Set a flag to track test initiation
+      const testId = Date.now().toString()
+      localStorage.setItem('apple_health_test_id', testId)
+      
+      // Try to run the shortcut with a test parameter
+      const testUrl = `shortcuts://run-shortcut?name=TrailBuddy-HealthKit-Export&input=test&test-id=${testId}`
+      
+      return new Promise((resolve) => {
+        let hasReturned = false
+        
+        // Listen for the app returning
+        const handleVisibilityChange = () => {
+          if (document.visibilityState === 'visible' && !hasReturned) {
+            hasReturned = true
+            document.removeEventListener('visibilitychange', handleVisibilityChange)
+            
+            // Check if test was successful
+            setTimeout(() => {
+              const testResult = localStorage.getItem('apple_health_test_result')
+              
+              if (testResult === testId) {
+                // Test successful
+                localStorage.setItem('apple_health_connection_tested', 'true')
+                localStorage.setItem('apple_health_shortcut_installed', 'true')
+                resolve({
+                  success: true,
+                  message: 'Connection test successful'
+                })
+              } else {
+                // Test failed
+                resolve({
+                  success: false,
+                  error: 'Shortcut did not respond. Please ensure it is installed correctly.'
+                })
+              }
+            }, 1000)
+          }
+        }
+        
+        document.addEventListener('visibilitychange', handleVisibilityChange)
+        
+        // Try to launch the shortcut
+        window.location.href = testUrl
+        
+        // Timeout after 10 seconds
+        setTimeout(() => {
+          if (!hasReturned) {
+            document.removeEventListener('visibilitychange', handleVisibilityChange)
+            resolve({
+              success: false,
+              error: 'Test timed out. The shortcut may not be installed.'
+            })
+          }
+        }, 10000)
+      })
+    } catch (error) {
+      return {
+        success: false,
+        error: 'Failed to test connection: ' + error.message
+      }
+    }
   }
 
   async connectViaDeepLink() {

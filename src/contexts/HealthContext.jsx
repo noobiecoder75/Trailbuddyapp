@@ -280,7 +280,14 @@ export const HealthProvider = ({ children }) => {
       console.error('Error message:', error.message)
       console.error('Error stack:', error.stack)
       console.error('Full error:', error)
-      setError(error.message)
+      
+      // Special handling for shortcut not installed error
+      if (error.message === 'SHORTCUT_NOT_INSTALLED') {
+        setError('Please install the TrailBuddy shortcut first to connect Apple Health')
+        // This will be handled by the UI to show the setup wizard
+      } else {
+        setError(error.message)
+      }
       return false
     } finally {
       setLoading(false)

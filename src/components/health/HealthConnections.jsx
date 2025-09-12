@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useHealth } from '../../contexts/HealthContext'
+import AppleHealthSetup from './AppleHealthSetup'
 
 const HealthConnections = () => {
   const { 
@@ -16,6 +17,7 @@ const HealthConnections = () => {
   
   const [connectingProvider, setConnectingProvider] = useState(null)
   const [syncing, setSyncing] = useState(false)
+  const [showAppleHealthSetup, setShowAppleHealthSetup] = useState(false)
   
   const availableProviders = getAvailableProviders()
 
@@ -64,6 +66,12 @@ const HealthConnections = () => {
   }
 
   const handleConnect = async (providerType) => {
+    // Show setup wizard for Apple Health on iOS
+    if (providerType === 'apple_health' && platform.isIOS) {
+      setShowAppleHealthSetup(true)
+      return
+    }
+    
     setConnectingProvider(providerType)
     try {
       await connectProvider(providerType)
@@ -71,6 +79,25 @@ const HealthConnections = () => {
       console.error(`Failed to connect ${providerType}:`, error)
     } finally {
       setConnectingProvider(null)
+    }
+  }
+
+  const handleAppleHealthSetupComplete = async (result) => {
+    setShowAppleHealthSetup(false)
+    
+    if (result && !result.skipSetup) {
+      // Setup completed successfully, now connect
+      setConnectingProvider('apple_health')
+      try {
+        await connectProvider('apple_health')
+      } catch (error) {
+        console.error('Failed to connect Apple Health after setup:', error)
+      } finally {
+        setConnectingProvider(null)
+      }
+    } else if (result && result.skipSetup) {
+      // User skipped setup, try connecting anyway
+      handleConnect('apple_health')
     }
   }
 
@@ -313,6 +340,13 @@ const HealthConnections = () => {
           <li>• More connected data sources = better workout partner recommendations</li>
         </ul>
       </div>
+
+      {/* Apple Health Setup Modal */}
+      <AppleHealthSetup 
+        isOpen={showAppleHealthSetup}
+        onClose={() => setShowAppleHealthSetup(false)}
+        onComplete={handleAppleHealthSetupComplete}
+      />
     </div>
   )
 }
