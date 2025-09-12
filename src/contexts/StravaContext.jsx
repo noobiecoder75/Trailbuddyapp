@@ -77,13 +77,26 @@ export const StravaProvider = ({ children }) => {
 
   const handleTokenRefresh = async (refreshToken) => {
     try {
+      console.log('=== TOKEN REFRESH START ===')
+      console.log('Refresh token provided:', refreshToken ? 'Yes' : 'No')
+      console.log('Refresh token length:', refreshToken ? refreshToken.length : 'N/A')
+      
       const tokens = await refreshAccessToken(refreshToken)
+      console.log('New tokens received:', tokens ? 'Yes' : 'No')
+      
       const savedTokens = await saveStravaTokens(tokens)
+      console.log('Tokens saved to database:', savedTokens ? 'Yes' : 'No')
+      
       const profile = await getAthleteProfile(tokens.access_token)
+      console.log('Athlete profile refreshed:', profile?.firstname || 'Unknown')
       setAthlete(profile)
+      
+      console.log('=== TOKEN REFRESH COMPLETE ===')
       return savedTokens
     } catch (error) {
-      console.error('Error refreshing token:', error)
+      console.error('=== TOKEN REFRESH FAILED ===')
+      console.error('Refresh error:', error.message)
+      console.error('Full refresh error:', error)
       setError('Failed to refresh Strava token')
       throw error
     }
@@ -117,6 +130,13 @@ export const StravaProvider = ({ children }) => {
   }
 
   const connectStrava = async (code) => {
+    console.log('=== CONNECT STRAVA FUNCTION START ===')
+    console.log('Received code parameter:', code)
+    console.log('Code type:', typeof code)
+    console.log('Code is truthy:', !!code)
+    console.log('Code length:', code ? code.length : 'N/A')
+    console.log('Demo mode state:', isDemoMode)
+
     setLoading(true)
     setError(null)
 
@@ -125,8 +145,12 @@ export const StravaProvider = ({ children }) => {
       const urlParams = new URLSearchParams(window.location.search)
       const isDemoFromUrl = urlParams.get('demo') === 'true'
       
+      console.log('Demo from URL:', isDemoFromUrl)
+      console.log('Final demo mode check:', isDemoMode || isDemoFromUrl)
+      
       // Demo mode - simulate connection (check both state and URL)
       if (isDemoMode || isDemoFromUrl) {
+        console.log('Demo mode detected, simulating connection...')
         await new Promise(resolve => setTimeout(resolve, 1500)) // Simulate API delay
         setIsDemoConnected(true)
         setAthlete(demoAthlete)
@@ -136,11 +160,15 @@ export const StravaProvider = ({ children }) => {
       }
 
       // Real OAuth flow - validate code parameter only for non-demo mode
+      console.log('=== REAL OAUTH FLOW ===')
+      console.log('Validating code parameter...')
       if (!code) {
+        console.error('No authorization code provided!')
         throw new Error('No authorization code provided')
       }
 
-      console.log('Starting OAuth token exchange with code:', code?.substring(0, 10) + '...')
+      console.log('Code validation passed. Starting OAuth token exchange...')
+      console.log('Code being sent to exchangeCodeForTokens:', code)
       
       const tokens = await exchangeCodeForTokens(code)
       console.log('Token exchange completed, saving tokens to database...')

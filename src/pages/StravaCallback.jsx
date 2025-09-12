@@ -9,17 +9,27 @@ const StravaCallback = () => {
 
   useEffect(() => {
     const handleCallback = async () => {
+      console.log('=== STRAVA CALLBACK DEBUG START ===')
+      console.log('Full callback URL:', window.location.href)
+      console.log('Search string:', window.location.search)
+      console.log('All searchParams entries:')
+      for (const [key, value] of searchParams.entries()) {
+        console.log(`  ${key}: ${value}`)
+      }
+
       const code = searchParams.get('code')
       const errorParam = searchParams.get('error')
       const state = searchParams.get('state')
       const scope = searchParams.get('scope')
 
-      console.log('StravaCallback received parameters:')
-      console.log('- Code:', code ? `${code.substring(0, 10)}...` : 'None')
+      console.log('=== EXTRACTED PARAMETERS ===')
+      console.log('- Code (raw):', code)
+      console.log('- Code type:', typeof code)
+      console.log('- Code length:', code ? code.length : 'N/A')
+      console.log('- Code preview:', code ? `${code.substring(0, 10)}...` : 'None')
       console.log('- Error:', errorParam)
       console.log('- State:', state)
       console.log('- Scope:', scope)
-      console.log('- Full URL:', window.location.href)
 
       if (errorParam) {
         // User denied access
@@ -30,6 +40,10 @@ const StravaCallback = () => {
 
       if (code) {
         try {
+          console.log('=== CALLING CONNECT STRAVA ===')
+          console.log('Passing code to connectStrava:', code)
+          console.log('Code being passed (type):', typeof code)
+          console.log('Code being passed (length):', code.length)
           console.log('Attempting to connect Strava with authorization code...')
           const success = await connectStrava(code)
           console.log('Connect Strava result:', success)
