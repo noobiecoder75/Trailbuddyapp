@@ -191,11 +191,19 @@ export const HealthProvider = ({ children }) => {
           console.log('Connecting to Google Fit...')
           // For Google Fit, if authData is provided, it means we're in the callback
           if (authData && authData.accessToken) {
-            // We're in the callback, simulate connection success
+            // We're in the callback, process the connection
             console.log('Google Fit callback detected, processing...')
+            console.log('Access token available:', !!authData.accessToken)
+            console.log('User data available:', !!authData.user)
+            
+            // Extract refresh token if available (from session or authData)
+            const refreshToken = authData.refreshToken || authData.user?.refreshToken || null
+            console.log('Refresh token available:', !!refreshToken)
+            
             connectionResult = {
               success: true,
               accessToken: authData.accessToken,
+              refreshToken: refreshToken,
               providerUserId: authData.user?.user_metadata?.sub || authData.user?.id,
               athlete: {
                 id: authData.user?.user_metadata?.sub || authData.user?.id,
@@ -203,7 +211,8 @@ export const HealthProvider = ({ children }) => {
                 email: authData.user?.email
               },
               scopes: ['fitness.activity.read', 'fitness.body.read'],
-              metadata: authData.user?.user_metadata
+              metadata: authData.user?.user_metadata,
+              expiresAt: authData.expiresAt || new Date(Date.now() + 3600000).toISOString() // Default 1 hour
             }
           } else {
             // Initial connection request
@@ -266,6 +275,7 @@ export const HealthProvider = ({ children }) => {
         }))
 
         console.log('Connection state updated, triggering initial sync...')
+        console.log('Stored tokens - Access:', !!connectionData.access_token, 'Refresh:', !!connectionData.refresh_token)
         // Trigger initial sync
         await syncProviderActivities(providerType)
         
@@ -332,7 +342,17 @@ export const HealthProvider = ({ children }) => {
     if (isDemoMode) return demoActivities
 
     const connection = healthConnections[providerType]
-    if (!connection || !connection.isConnected) return []
+    if (!connection || !connection.isConnected) {
+      console.log(`Cannot sync ${providerType}: not connected or no connection data`)
+      return []
+    }
+
+    console.log(`Starting sync for ${providerType}...`)
+    console.log('Connection data:', {
+      hasAccessToken: !!connection.access_token,
+      hasRefreshToken: !!connection.refresh_token,
+      providerUserId: connection.provider_user_id
+    })
 
     setLoading(true)
     try {
@@ -347,7 +367,10 @@ export const HealthProvider = ({ children }) => {
           )
           break
         case 'google_health':
-          activities = await googleFitApi.getActivities(forceRefresh)
+          console.log('Fetching Google Fit activities...')
+          // Pass connection data for token retrieval
+          activities = await googleFitApi.getActivities(forceRefresh, connection)
+          console.log(`Google Fit returned ${activities.length} activities`)
           break
         case 'apple_health':
           activities = await appleHealthApi.getActivities(connection, forceRefresh)
@@ -356,13 +379,29 @@ export const HealthProvider = ({ children }) => {
 
       // Normalize and save activities
       if (activities.length > 0) {
+        console.log(`Saving ${activities.length} activities to database...`)
         await saveUnifiedActivities(activities, providerType)
+        console.log('Activities saved successfully')
+      } else {
+        console.log(`No activities returned from ${providerType}`)
       }
 
       return activities
     } catch (error) {
-      console.error(`Error syncing ${providerType} activities:`, error)
-      setError(`Failed to sync ${providerType} activities`)
+      console.error(`Error syncing ${providerType} activities:`)
+      console.error('Error message:', error.message)
+      console.error('Error stack:', error.stack)
+      console.error('Full error:', error)
+      
+      // More specific error messages
+      let errorMessage = `Failed to sync ${providerType} activities`
+      if (error.message.includes('token')) {
+        errorMessage = `Authentication failed for ${providerType}. Please reconnect.`
+      } else if (error.message.includes('network')) {
+        errorMessage = `Network error while syncing ${providerType}. Please try again.`
+      }
+      
+      setError(errorMessage)
       return []
     } finally {
       setLoading(false)

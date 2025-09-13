@@ -9,6 +9,8 @@ class GoogleFitApi {
   constructor() {
     this.accessToken = null
     this.tokenExpiry = null
+    this.connectionData = null
+    this.refreshToken = null
   }
 
   // Check if user has Google Fit permissions
@@ -133,16 +135,119 @@ class GoogleFitApi {
     }
   }
 
-  // Get access token from Supabase session
+  // Refresh access token using refresh token
+  async refreshAccessToken(refreshToken) {
+    console.log('Attempting to refresh Google access token...')
+    
+    try {
+      // Use Google OAuth2 token endpoint to refresh
+      const response = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: new URLSearchParams({
+          refresh_token: refreshToken,
+          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || '',
+          client_secret: import.meta.env.VITE_GOOGLE_CLIENT_SECRET || '',
+          grant_type: 'refresh_token'
+        })
+      })
+      
+      if (!response.ok) {
+        const error = await response.json()
+        console.error('Token refresh failed:', error)
+        throw new Error('Failed to refresh token')
+      }
+      
+      const data = await response.json()
+      console.log('Token refreshed successfully')
+      
+      // Update stored token in database
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        await supabase
+          .from('user_health_connections')
+          .update({
+            access_token: data.access_token,
+            expires_at: new Date(Date.now() + (data.expires_in * 1000)).toISOString()
+          })
+          .eq('user_id', user.id)
+          .eq('provider_type', 'google_health')
+      }
+      
+      return data.access_token
+    } catch (error) {
+      console.error('Error refreshing token:', error)
+      throw error
+    }
+  }
+
+  // Get access token from Supabase session or database
   async getAccessToken() {
+    console.log('Getting Google Fit access token...')
+    
+    // First try to get from session
     const { data: { session } } = await supabase.auth.getSession()
     
-    if (!session?.provider_token) {
-      throw new Error('No Google access token available. Please sign in with Google.')
+    if (session?.provider_token) {
+      console.log('Access token found in session')
+      this.accessToken = session.provider_token
+      return this.accessToken
     }
-
-    this.accessToken = session.provider_token
-    return this.accessToken
+    
+    console.log('No session token, checking database...')
+    
+    // Fallback: Get from database if we have connection data
+    if (this.connectionData && this.connectionData.access_token) {
+      console.log('Using access token from connection data')
+      this.accessToken = this.connectionData.access_token
+      
+      // Check if token might be expired
+      if (this.connectionData.expires_at) {
+        const expiresAt = new Date(this.connectionData.expires_at)
+        const now = new Date()
+        if (expiresAt <= now) {
+          console.log('Access token expired, needs refresh')
+          if (this.connectionData.refresh_token) {
+            console.log('Refresh token available, refreshing...')
+            try {
+              const newToken = await this.refreshAccessToken(this.connectionData.refresh_token)
+              this.accessToken = newToken
+              return this.accessToken
+            } catch (error) {
+              console.error('Failed to refresh token:', error)
+              // Continue with potentially expired token
+            }
+          }
+        }
+      }
+      
+      return this.accessToken
+    }
+    
+    // Last resort: Try to get from database directly
+    console.log('Attempting to fetch token from database...')
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (user) {
+      const { data: connection, error } = await supabase
+        .from('user_health_connections')
+        .select('access_token, refresh_token, expires_at')
+        .eq('user_id', user.id)
+        .eq('provider_type', 'google_health')
+        .eq('is_active', true)
+        .single()
+      
+      if (!error && connection?.access_token) {
+        console.log('Found token in database')
+        this.accessToken = connection.access_token
+        this.connectionData = connection
+        return this.accessToken
+      }
+    }
+    
+    throw new Error('No Google access token available. Please reconnect Google Fit.')
   }
 
   // Fetch data from Google Fit API
@@ -217,16 +322,31 @@ class GoogleFitApi {
   }
 
   // Get activities for health context
-  async getActivities(forceRefresh = false) {
+  async getActivities(forceRefresh = false, connectionData = null) {
     try {
+      console.log('GoogleFitApi.getActivities called')
+      console.log('Connection data provided:', !!connectionData)
+      console.log('Force refresh:', forceRefresh)
+      
+      // Store connection data for token retrieval
+      if (connectionData) {
+        this.connectionData = connectionData
+        console.log('Stored connection data for token retrieval')
+      }
+      
       const endDate = new Date()
       const startDate = new Date(endDate.getTime() - (30 * 24 * 60 * 60 * 1000))
+
+      console.log('Fetching Google Fit data from', startDate.toISOString(), 'to', endDate.toISOString())
 
       // Fetch both daily summaries and workout sessions
       const [dailyData, sessions] = await Promise.all([
         this.getAggregatedData(startDate, endDate),
         this.getWorkoutSessions(30)
       ])
+
+      console.log('Retrieved', dailyData.length, 'days of daily data')
+      console.log('Retrieved', sessions.length, 'workout sessions')
 
       const activities = []
 
@@ -264,9 +384,12 @@ class GoogleFitApi {
         }
       })
 
+      console.log('Total activities prepared:', activities.length)
       return activities.sort((a, b) => new Date(b.startTime) - new Date(a.startTime))
     } catch (error) {
-      console.error('Error fetching Google Fit activities:', error)
+      console.error('Error fetching Google Fit activities:')
+      console.error('Error message:', error.message)
+      console.error('Error stack:', error.stack)
       throw error
     }
   }

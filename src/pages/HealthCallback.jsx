@@ -58,19 +58,51 @@ const HealthCallback = () => {
         } else if (provider === 'google_health') {
           // Google Fit OAuth callback - similar to Strava but through Supabase OAuth
           console.log('Processing Google Fit OAuth callback')
+          console.log('Platform:', navigator.userAgent)
+          console.log('Is iOS:', /iPad|iPhone|iPod/.test(navigator.userAgent))
           
           // Check if this is a successful OAuth callback by checking session
           const { data: { session } } = await supabase.auth.getSession()
           console.log('Current session after OAuth:', session ? 'Present' : 'None')
+          console.log('Session has provider_token:', !!session?.provider_token)
+          console.log('Session has access_token:', !!session?.access_token)
+          console.log('Session has user:', !!session?.user)
           
-          if (!session || !session.provider_token) {
+          // Try multiple token sources for iOS compatibility
+          let accessToken = session?.provider_token || session?.access_token
+          
+          // If no token in session (common on iOS), try to get from URL hash
+          if (!accessToken) {
+            console.log('No token in session, checking URL hash...')
+            const hashParams = new URLSearchParams(window.location.hash.substring(1))
+            accessToken = hashParams.get('access_token')
+            console.log('Token from hash:', !!accessToken)
+          }
+          
+          // If still no token, check URL params
+          if (!accessToken) {
+            console.log('No token in hash, checking URL params...')
+            accessToken = searchParams.get('access_token')
+            console.log('Token from params:', !!accessToken)
+          }
+          
+          if (!session || !session.user) {
             throw new Error('No Google OAuth session found after authorization')
           }
           
-          // The session contains the access token, so we don't need additional authData
+          // Extract refresh token if available
+          const refreshToken = session?.provider_refresh_token || 
+                             session?.refresh_token || 
+                             searchParams.get('refresh_token')
+          
+          console.log('Final token status - Access:', !!accessToken, 'Refresh:', !!refreshToken)
+          
+          // The session contains the user info, access token might be elsewhere
           authData = {
-            accessToken: session.provider_token,
-            user: session.user
+            accessToken: accessToken || session.provider_token,
+            refreshToken: refreshToken,
+            user: session.user,
+            expiresAt: session.expires_at || new Date(Date.now() + 3600000).toISOString()
           }
           
         } else if (provider === 'apple_health') {
