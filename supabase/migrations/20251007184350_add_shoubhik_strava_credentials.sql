@@ -1,22 +1,21 @@
--- Add Shoubhik's Strava API Configuration and Tokens
--- Migration: Add Shoubhik's Strava credentials to the system
+-- Add Shoubhik's Strava API Configuration for OAuth Flow
+-- Migration: Set up Shoubhik's Strava API config (OAuth method)
 -- Date: 2025-10-07
+--
+-- IMPORTANT: This creates the API config and assigns it to Shoubhik.
+-- Tokens will be obtained through OAuth when Shoubhik clicks "Connect with Strava"
+--
+-- Strava App Settings Requirements:
+-- Client ID: 177311 must have these redirect URIs configured:
+-- - http://localhost:5173/auth/strava/callback (for dev)
+-- - https://trail-mate.ca/auth/strava/callback (for production)
 
--- NOTE: Before running this migration, you need to find Shoubhik's user_id
--- Run this query first to get the user_id:
--- SELECT id, email, raw_user_meta_data->>'display_name' as display_name
--- FROM auth.users
--- WHERE email ILIKE '%shoubhik%' OR raw_user_meta_data->>'display_name' ILIKE '%shoubhik%';
-
--- Set the user_id variable (REPLACE THIS WITH ACTUAL USER_ID)
 DO $$
 DECLARE
     v_user_id UUID;
     v_config_id UUID;
-    v_token_expires_at TIMESTAMP WITH TIME ZONE;
 BEGIN
     -- Find Shoubhik's user_id by email or display_name
-    -- Adjust the WHERE clause based on how Shoubhik's account is identified
     SELECT id INTO v_user_id
     FROM auth.users
     WHERE raw_user_meta_data->>'display_name' ILIKE '%shoubhik%'
@@ -65,70 +64,7 @@ BEGIN
 
     RAISE NOTICE 'Assigned config to user';
 
-    -- 3. Store access and refresh tokens
-    -- Strava tokens typically expire in 6 hours (21600 seconds)
-    -- Setting expiration to 6 hours from now as a safe default
-    v_token_expires_at := NOW() + INTERVAL '6 hours';
-
-    INSERT INTO public.user_strava_tokens (
-        user_id,
-        access_token,
-        refresh_token,
-        expires_at,
-        strava_config_id
-    ) VALUES (
-        v_user_id,
-        'a26e01d05156cb7db52ddee83c8386b544001789',
-        '9bc6489ab4df00fcf997e4a09aac0a44c20bf61b',
-        v_token_expires_at,
-        v_config_id
-    )
-    ON CONFLICT (user_id)
-    DO UPDATE SET
-        access_token = EXCLUDED.access_token,
-        refresh_token = EXCLUDED.refresh_token,
-        expires_at = EXCLUDED.expires_at,
-        strava_config_id = EXCLUDED.strava_config_id,
-        updated_at = NOW();
-
-    RAISE NOTICE 'Stored tokens with expiration: %', v_token_expires_at;
-
-    -- 3b. ALSO store tokens in user_health_connections (used by the app)
-    INSERT INTO public.user_health_connections (
-        user_id,
-        provider_type,
-        provider_user_id,
-        access_token,
-        refresh_token,
-        expires_at,
-        scopes,
-        connection_data,
-        last_sync_at,
-        is_active
-    ) VALUES (
-        v_user_id,
-        'strava',
-        NULL, -- Will be populated when athlete profile is fetched
-        'a26e01d05156cb7db52ddee83c8386b544001789',
-        '9bc6489ab4df00fcf997e4a09aac0a44c20bf61b',
-        v_token_expires_at,
-        ARRAY['activity:read', 'profile:read_all'],
-        jsonb_build_object('config_id', v_config_id),
-        NOW(),
-        true
-    )
-    ON CONFLICT (user_id, provider_type)
-    DO UPDATE SET
-        access_token = EXCLUDED.access_token,
-        refresh_token = EXCLUDED.refresh_token,
-        expires_at = EXCLUDED.expires_at,
-        connection_data = EXCLUDED.connection_data,
-        is_active = true,
-        updated_at = NOW();
-
-    RAISE NOTICE 'Stored tokens in user_health_connections table';
-
-    -- 4. Initialize rate limiting for this config
+    -- 3. Initialize rate limiting for this config
     INSERT INTO public.strava_rate_limits (
         strava_config_id,
         daily_requests,
@@ -152,7 +88,7 @@ BEGIN
 
     RAISE NOTICE 'Initialized rate limiting for config';
 
-    -- 5. Initialize sync preferences for the user (optional)
+    -- 4. Initialize sync preferences for the user (optional)
     INSERT INTO public.user_sync_preferences (
         user_id,
         manual_sync_only,
@@ -170,10 +106,18 @@ BEGIN
     DO NOTHING;
 
     RAISE NOTICE 'Setup completed successfully for Shoubhik';
-    RAISE NOTICE '============================================';
-    RAISE NOTICE 'IMPORTANT: The access token may be expired.';
-    RAISE NOTICE 'The app will automatically refresh it on first use.';
-    RAISE NOTICE '============================================';
+    RAISE NOTICE '========================================';
+    RAISE NOTICE 'OAUTH FLOW: Next steps for Shoubhik:';
+    RAISE NOTICE '1. Log in to the app';
+    RAISE NOTICE '2. Click "Connect with Strava"';
+    RAISE NOTICE '3. Authorize the app (client_id: 177311)';
+    RAISE NOTICE '4. Tokens will be stored automatically';
+    RAISE NOTICE '========================================';
+    RAISE NOTICE 'REMINDER: Verify redirect URIs in Strava app settings:';
+    RAISE NOTICE '- http://localhost:5173/auth/strava/callback';
+    RAISE NOTICE '- https://trail-mate.ca/auth/strava/callback';
+    RAISE NOTICE '========================================';
+
 
 EXCEPTION
     WHEN OTHERS THEN
