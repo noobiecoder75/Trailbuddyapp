@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import { useAuth } from './AuthContext'
 import { useDemo } from './DemoContext'
 import { supabase } from '../lib/supabase'
-import { stravaApi } from '../lib/stravaApi'
+import { stravaApi } from '../lib/stravaApiEnhanced'
 import { googleFitApi } from '../lib/googleFitApi'
 import { appleHealthApi } from '../lib/appleHealthApi'
 
@@ -102,7 +102,7 @@ export const HealthProvider = ({ children }) => {
         if (conn.provider_type === 'strava' && conn.access_token) {
           try {
             console.log('Loading Strava athlete profile...')
-            const athlete = await stravaApi.getAthleteProfile(conn.access_token)
+            const athlete = await stravaApi.getAthleteProfile(conn.access_token, user.id)
             console.log('Strava athlete loaded:', athlete.firstname, athlete.lastname)
             setHealthConnections(prev => ({
               ...prev,
@@ -185,7 +185,17 @@ export const HealthProvider = ({ children }) => {
       switch (providerType) {
         case 'strava':
           console.log('Connecting to Strava...')
-          connectionResult = await stravaApi.connectStrava(authData)
+          const tokens = await stravaApi.exchangeCodeForTokens(authData, user.id)
+          connectionResult = {
+            success: true,
+            accessToken: tokens.access_token,
+            refreshToken: tokens.refresh_token,
+            providerUserId: tokens.athlete?.id,
+            athlete: tokens.athlete,
+            expiresAt: new Date(tokens.expires_at * 1000).toISOString(),
+            scopes: tokens.scope ? tokens.scope.split(',') : ['activity:read', 'profile:read_all'],
+            metadata: tokens
+          }
           break
         case 'google_health':
           console.log('Connecting to Google Fit...')
@@ -361,9 +371,10 @@ export const HealthProvider = ({ children }) => {
       switch (providerType) {
         case 'strava':
           activities = await stravaApi.getAthleteActivities(
-            connection.access_token, 
-            1, 
-            30
+            connection.access_token,
+            1,
+            30,
+            user.id
           )
           break
         case 'google_health':

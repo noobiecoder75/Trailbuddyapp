@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { useHealth } from '../../contexts/HealthContext'
 import { useDemo } from '../../contexts/DemoContext'
-import { getStravaAuthUrl } from '../../lib/stravaApi'
+import { useAuth } from '../../contexts/AuthContext'
+import { getStravaAuthUrl } from '../../lib/stravaApiEnhanced'
 
 const StravaConnect = () => {
   const { isConnected, athlete, loading, error, disconnectStrava, connectStrava } = useHealth()
   const { isDemoMode } = useDemo()
+  const { user } = useAuth()
   const [isConnecting, setIsConnecting] = useState(false)
 
   const handleConnect = async () => {
@@ -14,7 +16,8 @@ const StravaConnect = () => {
       await connectStrava()
       setIsConnecting(false)
     } else {
-      window.location.href = getStravaAuthUrl()
+      const authUrl = await getStravaAuthUrl(user?.id)
+      window.location.href = authUrl
     }
   }
 

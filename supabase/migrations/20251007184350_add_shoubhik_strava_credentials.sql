@@ -93,6 +93,41 @@ BEGIN
 
     RAISE NOTICE 'Stored tokens with expiration: %', v_token_expires_at;
 
+    -- 3b. ALSO store tokens in user_health_connections (used by the app)
+    INSERT INTO public.user_health_connections (
+        user_id,
+        provider_type,
+        provider_user_id,
+        access_token,
+        refresh_token,
+        expires_at,
+        scopes,
+        connection_data,
+        last_sync_at,
+        is_active
+    ) VALUES (
+        v_user_id,
+        'strava',
+        NULL, -- Will be populated when athlete profile is fetched
+        'a26e01d05156cb7db52ddee83c8386b544001789',
+        '9bc6489ab4df00fcf997e4a09aac0a44c20bf61b',
+        v_token_expires_at,
+        ARRAY['activity:read', 'profile:read_all'],
+        jsonb_build_object('config_id', v_config_id),
+        NOW(),
+        true
+    )
+    ON CONFLICT (user_id, provider_type)
+    DO UPDATE SET
+        access_token = EXCLUDED.access_token,
+        refresh_token = EXCLUDED.refresh_token,
+        expires_at = EXCLUDED.expires_at,
+        connection_data = EXCLUDED.connection_data,
+        is_active = true,
+        updated_at = NOW();
+
+    RAISE NOTICE 'Stored tokens in user_health_connections table';
+
     -- 4. Initialize rate limiting for this config
     INSERT INTO public.strava_rate_limits (
         strava_config_id,
